@@ -1,0 +1,151 @@
+import { useState } from 'react'
+import Box from '@mui/material/Box'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
+import Paper from '@mui/material/Paper'
+import Slider from '@mui/material/Slider'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
+import FilterListIcon from '@mui/icons-material/FilterList'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import Autocomplete from '@mui/material/Autocomplete'
+import Collapse from '@mui/material/Collapse'
+import useMovieStore from '@/store/useMovieStore'
+
+function minutesToHHMMSS(minutes: number): string {
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
+  const m = (minutes % 60).toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+
+function HHMMSSToMinutes(hhmmss: string): number {
+  const [h, m] = hhmmss.split(':').map(Number)
+  return h * 60 + m
+}
+
+export default function MovieSearch() {
+  const { filters, setFilter, resetFilters, countries } = useMovieStore()
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  const hasActiveFilters =
+    filters.name ||
+    filters.country ||
+    filters.director ||
+    filters.genre ||
+    filters.maxDuration !== null
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        mb: 3,
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: showAdvanced ? 2 : 0 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Buscar por nombre de pelicula..."
+          value={filters.name}
+          onChange={(e) => setFilter('name', e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Tooltip title={showAdvanced ? 'Ocultar filtros' : 'Mostrar filtros avanzados'} arrow>
+          <IconButton
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            sx={{
+              color: showAdvanced ? 'primary.main' : 'text.secondary',
+              backgroundColor: showAdvanced ? 'rgba(229, 9, 20, 0.08)' : 'transparent',
+            }}
+          >
+            <FilterListIcon />
+          </IconButton>
+        </Tooltip>
+        {hasActiveFilters && (
+          <Tooltip title="Limpiar filtros" arrow>
+            <IconButton
+              onClick={resetFilters}
+              sx={{ color: 'text.secondary' }}
+            >
+              <ClearIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+
+      <Collapse in={showAdvanced}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 2,
+            pt: 1,
+          }}
+        >
+          <Autocomplete
+            options={countries}
+            value={filters.country}
+            onChange={(_, v) => setFilter('country', v || '')}
+            renderInput={(params) => <TextField {...params} size="small" label="País" placeholder="ej. Argentina" />}
+          />
+          <TextField
+            size="small"
+            label="Director"
+            placeholder="ej. Tarantino"
+            value={filters.director}
+            onChange={(e) => setFilter('director', e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Género"
+            placeholder="ej. Drama"
+            value={filters.genre}
+            onChange={(e) => setFilter('genre', e.target.value)}
+          />
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Duración maxima: {filters.maxDuration ? filters.maxDuration.substring(0, 5) : 'Sin límite'}
+              </Typography>
+            </Box>
+            <Slider
+              value={filters.maxDuration ? HHMMSSToMinutes(filters.maxDuration) : 240}
+              onChange={(_, value) =>
+                setFilter('maxDuration', value === 240 ? null : minutesToHHMMSS(value as number))
+              }
+              min={60}
+              max={240}
+              step={5}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => `${Math.floor(v / 60)}h ${v % 60}m`}
+              sx={{
+                color: 'primary.main',
+                '& .MuiSlider-thumb': {
+                  width: 16,
+                  height: 16,
+                },
+              }}
+            />
+          </Box>
+        </Box>
+      </Collapse>
+    </Paper>
+  )
+}

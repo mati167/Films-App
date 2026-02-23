@@ -12,7 +12,7 @@ interface BreadcrumbItem {
 }
 
 function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
-  const items: BreadcrumbItem[] = [{ label: 'Inicio', path: '/' }]
+  const items: BreadcrumbItem[] = [{ label: 'Inicio', path: '/films' }]
 
   if (pathname === '/') return items
 

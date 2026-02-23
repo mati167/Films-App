@@ -22,7 +22,7 @@ export default function Header() {
   const { isLoggedIn, logout } = useAuthStore()
 
   const navItems = [
-    { label: 'Peliculas', path: '/' },
+    { label: 'Peliculas', path: '/films' },
     { label: 'Generos', path: '/genres' },
     { label: 'Paises', path: '/countries' },
     { label: 'Directores', path: '/directors' },
@@ -48,7 +48,7 @@ export default function Header() {
             '&:hover': { opacity: 0.85 },
             transition: 'opacity 0.2s',
           }}
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/films')}
           role="button"
           tabIndex={0}
           aria-label="Ir al inicio"

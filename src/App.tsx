@@ -28,7 +28,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<Navigate to="/films" replace />} />
+            <Route path="/films" element={<HomePage />} />
             <Route path="/countries" element={<CountriesListPage />} />
             <Route path="/country/:country" element={<CountryPage />} />
             <Route path="/directors" element={<DirectorsListPage />} />

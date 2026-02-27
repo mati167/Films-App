@@ -12,7 +12,7 @@ import Box from '@mui/material/Box'
 import type { Movie } from '@/types/movie'
 import ChipLink from './ChipLink'
 import ExternalLinks from './ExternalLinks'
-import { getCountryFlag } from '@/utils/countryFlags'
+import { getCountryFlagUrl } from '@/utils/countryFlags'
 import Tooltip from '@mui/material/Tooltip'
 import useMovieStore from '@/store/useMovieStore'
 import type { DirectorMetadata, CountryMetadata } from '@/store/useMovieStore'
@@ -226,9 +226,18 @@ export default function MovieTable({ movies }: MovieTableProps) {
                     <Tooltip key={country} title={country} arrow>
                       <Box component="span">
                         <ChipLink
-                          label={getCountryFlag(country)}
+                          label=""
                           to={`/country/${encodeURIComponent(country)}`}
-                          sx={{ fontSize: '1.2rem', p: 0 }}
+                          sx={{
+                            p: 0,
+                            minWidth: 32,
+                            height: 22,
+                            backgroundImage: `url(${getCountryFlagUrl(country)})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                          }}
                         />
                       </Box>
                     </Tooltip>

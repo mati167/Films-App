@@ -12,9 +12,9 @@ import VideocamIcon from '@mui/icons-material/Videocam'
 import useMovieStore from '@/store/useMovieStore'
 import SearchInput from '@/components/SearchInput'
 import { useNavigate } from 'react-router-dom'
-import { getCountryFlag } from '@/utils/countryFlags'
+import { getCountryFlagUrl } from '@/utils/countryFlags'
 import Tooltip from '@mui/material/Tooltip'
-import Chip from '@mui/material/Chip'
+import LoadingIndicator from '@/components/LoadingIndicator'
 
 import TableSortLabel from '@mui/material/TableSortLabel'
 
@@ -25,6 +25,7 @@ export default function DirectorsListPage() {
     const directors = useMovieStore((s) => s.directors)
     const directorMetadata = useMovieStore((s) => s.directorMetadata)
     const directorIds = useMovieStore((s) => s.directorIds)
+    const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -84,61 +85,74 @@ export default function DirectorsListPage() {
                 placeholder="Buscar director..."
             />
 
-            <TableContainer component={Paper} elevation={0}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortKey === 'name'}
-                                    direction={sortKey === 'name' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('name')}
-                                >
-                                    Nombre
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>Nacionalidad</TableCell>
-                            <TableCell align="center">
-                                <TableSortLabel
-                                    active={sortKey === 'movieCount'}
-                                    direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('movieCount')}
-                                >
-                                    Cantidad Peliculas
-                                </TableSortLabel>
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {directorsList.map((director) => (
-                            <TableRow
-                                key={director.name}
-                                hover
-                                onClick={() => navigate(`/director/${director.id}`)}
-                                sx={{ cursor: 'pointer' }}
-                            >
-                                <TableCell align="center">
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                                        {director.id}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>{director.name}</TableCell>
+            {isLoading ? (
+                <LoadingIndicator />
+            ) : (
+                <TableContainer component={Paper} elevation={0}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
                                 <TableCell>
-                                    {director.nationality && (
-                                        <Tooltip title={director.nationality} arrow>
-                                            <Typography sx={{ fontSize: '1.5rem', cursor: 'default' }}>
-                                                {getCountryFlag(director.nationality)}
-                                            </Typography>
-                                        </Tooltip>
-                                    )}
+                                    <TableSortLabel
+                                        active={sortKey === 'name'}
+                                        direction={sortKey === 'name' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('name')}
+                                    >
+                                        Nombre
+                                    </TableSortLabel>
                                 </TableCell>
-                                <TableCell align="center">{director.movieCount}</TableCell>
+                                <TableCell>Nacionalidad</TableCell>
+                                <TableCell align="center">
+                                    <TableSortLabel
+                                        active={sortKey === 'movieCount'}
+                                        direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('movieCount')}
+                                    >
+                                        Cantidad Peliculas
+                                    </TableSortLabel>
+                                </TableCell>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                            {directorsList.map((director) => (
+                                <TableRow
+                                    key={director.name}
+                                    hover
+                                    onClick={() => navigate(`/director/${director.id}`)}
+                                    sx={{ cursor: 'pointer' }}
+                                >
+                                    <TableCell align="center">
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                                            {director.id}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600 }}>{director.name}</TableCell>
+                                    <TableCell>
+                                        {director.nationality && (
+                                            <Tooltip title={director.nationality} arrow>
+                                                <Box
+                                                    component="img"
+                                                    src={getCountryFlagUrl(director.nationality)}
+                                                    alt={director.nationality}
+                                                    sx={{
+                                                        width: 28,
+                                                        height: 'auto',
+                                                        borderRadius: '3px',
+                                                        display: 'block',
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                    }}
+                                                />
+                                            </Tooltip>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="center">{director.movieCount}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
         </Box>
     )
 }

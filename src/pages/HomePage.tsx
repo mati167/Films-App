@@ -5,12 +5,14 @@ import MovieIcon from '@mui/icons-material/Movie'
 import useMovieStore from '@/store/useMovieStore'
 import MovieSearch from '@/components/MovieSearch'
 import MovieTable from '@/components/MovieTable'
+import LoadingIndicator from '@/components/LoadingIndicator'
 import { useMemo } from 'react'
 
 export default function HomePage() {
   const getFilteredMovies = useMovieStore((s) => s.getFilteredMovies)
   const filters = useMovieStore((s) => s.filters)
   const allMovies = useMovieStore((s) => s.movies)
+  const isLoading = useMovieStore((s) => s.isLoading)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const filteredMovies = useMemo(() => getFilteredMovies(), [filters, allMovies])
 
@@ -42,7 +44,7 @@ export default function HomePage() {
       </Box>
 
       <MovieSearch />
-      <MovieTable movies={filteredMovies} />
+      {isLoading ? <LoadingIndicator /> : <MovieTable movies={filteredMovies} />}
     </Box>
   )
 }

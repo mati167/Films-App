@@ -12,8 +12,9 @@ import PublicIcon from '@mui/icons-material/Public'
 import useMovieStore from '@/store/useMovieStore'
 import SearchInput from '@/components/SearchInput'
 import { useNavigate } from 'react-router-dom'
-import { getCountryFlag } from '@/utils/countryFlags'
+import { getCountryFlagUrl } from '@/utils/countryFlags'
 import { ContinentShape } from '@/utils/continentIcons'
+import LoadingIndicator from '@/components/LoadingIndicator'
 
 import TableSortLabel from '@mui/material/TableSortLabel'
 
@@ -24,6 +25,7 @@ export default function CountriesListPage() {
     const countries = useMovieStore((s) => s.countries)
     const countryMetadata = useMovieStore((s) => s.countryMetadata)
     const countryIds = useMovieStore((s) => s.countryIds)
+    const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -85,74 +87,91 @@ export default function CountriesListPage() {
                 placeholder="Buscar pais..."
             />
 
-            <TableContainer component={Paper} elevation={0}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortKey === 'name'}
-                                    direction={sortKey === 'name' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('name')}
-                                >
-                                    Nombre
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell align="center">Continente</TableCell>
-                            <TableCell align="center">Bandera</TableCell>
-                            <TableCell align="center">
-                                <TableSortLabel
-                                    active={sortKey === 'movieCount'}
-                                    direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('movieCount')}
-                                >
-                                    Cantidad Peliculas
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell align="center">
-                                <TableSortLabel
-                                    active={sortKey === 'directorCount'}
-                                    direction={sortKey === 'directorCount' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('directorCount')}
-                                >
-                                    Cantidad Directores
-                                </TableSortLabel>
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {countriesList.map((country) => (
-                            <TableRow
-                                key={country.name}
-                                hover
-                                onClick={() => navigate(`/country/${encodeURIComponent(country.name)}`)}
-                                sx={{ cursor: 'pointer' }}
-                            >
+            {isLoading ? (
+                <LoadingIndicator />
+            ) : (
+                <TableContainer component={Paper} elevation={0}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortKey === 'name'}
+                                        direction={sortKey === 'name' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('name')}
+                                    >
+                                        Nombre
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell align="center">Continente</TableCell>
+                                <TableCell align="center">Bandera</TableCell>
                                 <TableCell align="center">
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                                        {country.id}
-                                    </Typography>
+                                    <TableSortLabel
+                                        active={sortKey === 'movieCount'}
+                                        direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('movieCount')}
+                                    >
+                                        Cantidad Peliculas
+                                    </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>{country.name}</TableCell>
                                 <TableCell align="center">
-                                    {country.continent && (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                                            <ContinentShape continent={country.continent} size={20} />
-                                            <Typography variant="body2">{country.continent}</Typography>
-                                        </Box>
-                                    )}
+                                    <TableSortLabel
+                                        active={sortKey === 'directorCount'}
+                                        direction={sortKey === 'directorCount' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('directorCount')}
+                                    >
+                                        Cantidad Directores
+                                    </TableSortLabel>
                                 </TableCell>
-                                <TableCell align="center" sx={{ fontSize: '1.5rem' }}>
-                                    {getCountryFlag(country.name)}
-                                </TableCell>
-                                <TableCell align="center">{country.movieCount}</TableCell>
-                                <TableCell align="center">{country.directorCount}</TableCell>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                            {countriesList.map((country) => (
+                                <TableRow
+                                    key={country.name}
+                                    hover
+                                    onClick={() => navigate(`/country/${encodeURIComponent(country.name)}`)}
+                                    sx={{ cursor: 'pointer' }}
+                                >
+                                    <TableCell align="center">
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                                            {country.id}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600 }}>{country.name}</TableCell>
+                                    <TableCell align="center">
+                                        {country.continent && (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                                <ContinentShape continent={country.continent} size={20} />
+                                                <Typography variant="body2">{country.continent}</Typography>
+                                            </Box>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        {getCountryFlagUrl(country.name) ? (
+                                            <Box
+                                                component="img"
+                                                src={getCountryFlagUrl(country.name)}
+                                                alt={country.name}
+                                                sx={{
+                                                    width: 30,
+                                                    height: 'auto',
+                                                    borderRadius: '4px',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                                    border: '1px solid rgba(255,255,255,0.1)'
+                                                }}
+                                            />
+                                        ) : '🌐'}
+                                    </TableCell>
+                                    <TableCell align="center">{country.movieCount}</TableCell>
+                                    <TableCell align="center">{country.directorCount}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
         </Box>
     )
 }

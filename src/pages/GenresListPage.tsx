@@ -12,6 +12,7 @@ import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 import useMovieStore from '@/store/useMovieStore'
 import SearchInput from '@/components/SearchInput'
 import { useNavigate } from 'react-router-dom'
+import LoadingIndicator from '@/components/LoadingIndicator'
 
 import TableSortLabel from '@mui/material/TableSortLabel'
 
@@ -22,6 +23,7 @@ export default function GenresListPage() {
     const genres = useMovieStore((s) => s.genres)
     const genreMetadata = useMovieStore((s) => s.genreMetadata)
     const genreIds = useMovieStore((s) => s.genreIds)
+    const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -72,51 +74,55 @@ export default function GenresListPage() {
                 placeholder="Buscar genero..."
             />
 
-            <TableContainer component={Paper} elevation={0}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortKey === 'name'}
-                                    direction={sortKey === 'name' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('name')}
-                                >
-                                    Nombre
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell align="center">
-                                <TableSortLabel
-                                    active={sortKey === 'movieCount'}
-                                    direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
-                                    onClick={() => handleSort('movieCount')}
-                                >
-                                    Cantidad Peliculas
-                                </TableSortLabel>
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {genresList.map((genre, index) => (
-                            <TableRow
-                                key={genre.name}
-                                hover
-                                onClick={() => navigate(`/genre/${genre.id}`)}
-                                sx={{ cursor: 'pointer' }}
-                            >
-                                <TableCell align="center">
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                                        {genre.id}
-                                    </Typography>
+            {isLoading ? (
+                <LoadingIndicator />
+            ) : (
+                <TableContainer component={Paper} elevation={0}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortKey === 'name'}
+                                        direction={sortKey === 'name' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('name')}
+                                    >
+                                        Nombre
+                                    </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>{genre.name}</TableCell>
-                                <TableCell align="center">{genre.movieCount}</TableCell>
+                                <TableCell align="center">
+                                    <TableSortLabel
+                                        active={sortKey === 'movieCount'}
+                                        direction={sortKey === 'movieCount' ? sortDirection : 'asc'}
+                                        onClick={() => handleSort('movieCount')}
+                                    >
+                                        Cantidad Peliculas
+                                    </TableSortLabel>
+                                </TableCell>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                            {genresList.map((genre, index) => (
+                                <TableRow
+                                    key={genre.name}
+                                    hover
+                                    onClick={() => navigate(`/genre/${genre.id}`)}
+                                    sx={{ cursor: 'pointer' }}
+                                >
+                                    <TableCell align="center">
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                                            {genre.id}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600 }}>{genre.name}</TableCell>
+                                    <TableCell align="center">{genre.movieCount}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
         </Box>
     )
 }

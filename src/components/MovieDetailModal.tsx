@@ -4,7 +4,6 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
@@ -12,11 +11,14 @@ import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import MovieIcon from '@mui/icons-material/Movie'
+import StarIcon from '@mui/icons-material/Star'
 import useAuthStore from '@/store/useAuthStore'
 import useMovieStore from '@/store/useMovieStore'
 import type { Movie } from '@/types/movie'
 import ExternalLinks from './ExternalLinks'
 import MovieForm from './MovieForm'
+import CircularProgress from '@mui/material/CircularProgress'
+import Divider from '@mui/material/Divider'
 
 interface MovieDetailModalProps {
     movie: Movie | null
@@ -25,62 +27,24 @@ interface MovieDetailModalProps {
 
 export default function MovieDetailModal({ movie, onClose }: MovieDetailModalProps) {
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
-    const { updateMovie, omdbApiKey } = useMovieStore()
+    const { updateMovie, fetchMovieDetails } = useMovieStore()
     const [isEditing, setIsEditing] = useState(false)
-    const [posterUrl, setPosterUrl] = useState<string | null>(null)
-    const [loadingPoster, setLoadingPoster] = useState(false)
-    const [authError, setAuthError] = useState(false)
+    const [omdbData, setOmdbData] = useState<any>(null)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        setPosterUrl(null)
-        setAuthError(false)
-        const id = movie?.imdbID
-        const name = movie?.name
-        const year = movie?.year
-
-        console.log(`Buscando póster para: ${name} [ID: ${id}]`);
-
-        if (id || name) {
-            setLoadingPoster(true)
-            const query = id ? `i=${id}` : `t=${encodeURIComponent(name || '')}&y=${year}`
-
-            fetch(`https://www.omdbapi.com/?${query}&apikey=${omdbApiKey}`)
-                .then(res => {
-                    if (res.status === 401) {
-                        setAuthError(true)
-                        throw new Error('401 Unauthorized')
-                    }
-                    return res.json()
-                })
+        setOmdbData(null)
+        if (movie?.imdbID) {
+            setLoading(true)
+            fetchMovieDetails(movie.imdbID)
                 .then(data => {
-                    console.log('Respuesta OMDb:', data);
-                    if (data.Poster && data.Poster !== 'N/A') {
-                        setPosterUrl(data.Poster)
-                    } else if (id && name) {
-                        // Fallback por título si el ID falló
-                        fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&y=${year}&apikey=${omdbApiKey}`)
-                            .then(res => {
-                                if (res.status === 401) {
-                                    setAuthError(true)
-                                    return { Response: 'False' }
-                                }
-                                return res.json()
-                            })
-                            .then(data2 => {
-                                if (data2.Poster && data2.Poster !== 'N/A') {
-                                    setPosterUrl(data2.Poster)
-                                }
-                            })
+                    if (data && data.Response !== 'False') {
+                        setOmdbData(data)
                     }
                 })
-                .catch(err => {
-                    if (err.message !== '401 Unauthorized') {
-                        console.error('Error fetching poster:', err)
-                    }
-                })
-                .finally(() => setLoadingPoster(false))
+                .finally(() => setLoading(false))
         }
-    }, [movie?.imdbID, movie?.name, movie?.year, omdbApiKey])
+    }, [movie?.imdbID, fetchMovieDetails])
 
     if (!movie) return null
 
@@ -88,6 +52,8 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
         updateMovie(movie.id, formData)
         setIsEditing(false)
     }
+
+    const posterUrl = omdbData?.Poster !== 'N/A' ? omdbData?.Poster : null
 
     return (
         <Dialog open={!!movie} onClose={onClose} maxWidth="md" fullWidth>
@@ -110,94 +76,153 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                 </Box>
             </DialogTitle>
 
-            <DialogContent dividers sx={{ p: 3 }}>
+            <DialogContent dividers sx={{ p: 0 }}>
                 {isEditing ? (
-                    <MovieForm
-                        initialData={movie}
-                        onSubmit={handleUpdate}
-                        onCancel={() => setIsEditing(false)}
-                        submitLabel="Actualizar"
-                    />
+                    <Box sx={{ p: 3 }}>
+                        <MovieForm
+                            initialData={movie}
+                            onSubmit={handleUpdate}
+                            onCancel={() => setIsEditing(false)}
+                            submitLabel="Actualizar"
+                        />
+                    </Box>
                 ) : (
-                    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
-                        {/* Poster Section */}
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+                        {/* Left Column: Poster & Quick Info */}
                         <Box sx={{
-                            width: { xs: '100%', sm: 220 },
-                            minWidth: { sm: 220 },
-                            height: 330,
-                            backgroundColor: 'action.hover',
-                            borderRadius: 2,
-                            overflow: 'hidden',
+                            width: { xs: '100%', md: 300 },
+                            bgcolor: 'rgba(0,0,0,0.05)',
+                            p: 3,
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            flexShrink: 0
+                            borderRight: { md: '1px solid' },
+                            borderColor: 'divider'
                         }}>
-                            {posterUrl ? (
-                                <Box
-                                    component="img"
-                                    src={posterUrl}
-                                    alt={movie.name}
-                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                            ) : (
-                                <Box sx={{ textAlign: 'center', color: authError ? 'error.main' : 'text.disabled', p: 2 }}>
-                                    <MovieIcon sx={{ fontSize: 60, mb: 1, opacity: 0.5 }} />
-                                    <Typography variant="caption" display="block">
-                                        {authError ? 'Error de API (401: Inválida)' : 'Post de IMDb no disponible'}
+                            <Box sx={{
+                                width: '100%',
+                                position: 'relative',
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                boxShadow: 3,
+                                mb: 2,
+                                aspectRatio: '2/3',
+                                bgcolor: 'action.hover',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                {loading ? (
+                                    <CircularProgress size={40} />
+                                ) : posterUrl ? (
+                                    <Box component="img" src={posterUrl} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <MovieIcon sx={{ fontSize: 80, opacity: 0.2 }} />
+                                )}
+                            </Box>
+
+                            {omdbData?.imdbRating && omdbData.imdbRating !== 'N/A' && (
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                    <StarIcon sx={{ color: '#f5c518' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                        {omdbData.imdbRating}
                                     </Typography>
+                                    <Typography variant="body2" color="text.secondary">/ 10</Typography>
+                                </Stack>
+                            )}
+
+                            {omdbData?.Ratings && omdbData.Ratings.length > 0 && (
+                                <Box sx={{ width: '100%', mt: 1 }}>
+                                    {omdbData.Ratings.map((r: any) => (
+                                        <Box key={r.Source} sx={{ mb: 1.5 }}>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                                {r.Source}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                {r.Value}
+                                            </Typography>
+                                        </Box>
+                                    ))}
                                 </Box>
                             )}
                         </Box>
 
-                        {/* Details Section */}
-                        <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'text.primary', lineHeight: 1.2 }}>
+                        {/* Right Column: Full Details */}
+                        <Box sx={{ flex: 1, p: 3 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, lineHeight: 1.1 }}>
                                 {movie.name}
                             </Typography>
 
-                            <Stack direction="row" spacing={1} sx={{ mb: 3, alignItems: 'center' }}>
-                                <Chip label={movie.year} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                    {movie.year}
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.5 }} />
+                                <Typography variant="body2" color="text.secondary">
+                                    {omdbData?.Rated || 'N/A'}
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.5 }} />
+                                <Stack direction="row" spacing={0.5} alignItems="center">
                                     <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                     <Typography variant="body2" color="text.secondary">
-                                        {movie.duration}
+                                        {omdbData?.Runtime || movie.duration}
                                     </Typography>
-                                </Box>
+                                </Stack>
                             </Stack>
 
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>
-                                    Director/es
-                                </Typography>
-                                <Typography variant="body1">
-                                    {movie.directors.join(', ')}
-                                </Typography>
+                            <Box sx={{ mb: 3 }}>
+                                {omdbData?.Genre ? (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {omdbData.Genre.split(', ').map((g: string) => (
+                                            <Chip key={g} label={g} size="small" variant="outlined" />
+                                        ))}
+                                    </Box>
+                                ) : (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {movie.genres.map(g => (
+                                            <Chip key={g} label={g} size="small" variant="outlined" />
+                                        ))}
+                                    </Box>
+                                )}
                             </Box>
 
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>
-                                    Géneros
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                    {movie.genres.map(g => (
-                                        <Chip key={g} label={g} size="small" sx={{ borderRadius: 1 }} />
-                                    ))}
+                            <Typography variant="body1" sx={{ mb: 3, fontStyle: omdbData?.Plot === 'N/A' ? 'italic' : 'normal' }}>
+                                {omdbData?.Plot && omdbData.Plot !== 'N/A' ? omdbData.Plot : 'Sinopsis no disponible.'}
+                            </Typography>
+
+                            <Box sx={{
+                                display: 'grid',
+                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                                gap: 2,
+                                mb: 3
+                            }}>
+                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
+                                    <DetailItem label="Director/es" value={omdbData?.Director || movie.directors.join(', ')} />
+                                </Box>
+                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
+                                    <DetailItem label="Escritor/es" value={omdbData?.Writer || 'N/A'} />
+                                </Box>
+                                <Box sx={{ gridColumn: 'span 2' }}>
+                                    <DetailItem label="Actores" value={omdbData?.Actors || 'N/A'} />
+                                </Box>
+                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
+                                    <DetailItem label="Idioma" value={omdbData?.Language || 'N/A'} />
+                                </Box>
+                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
+                                    <DetailItem label="País/es" value={omdbData?.Country || movie.countries.join(', ')} />
                                 </Box>
                             </Box>
 
-                            <Box sx={{ mb: 3 }}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>
-                                    País/es
-                                </Typography>
-                                <Typography variant="body1">
-                                    {movie.countries.join(', ')}
-                                </Typography>
-                            </Box>
+                            {omdbData?.Awards && omdbData.Awards !== 'N/A' && (
+                                <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                    <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                                        Premios
+                                    </Typography>
+                                    <Typography variant="body2">{omdbData.Awards}</Typography>
+                                </Box>
+                            )}
 
-                            <Box sx={{ mt: 'auto', pt: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-start' }}>
+                            <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                                 <ExternalLinks
                                     movieName={movie.name}
                                     movieYear={movie.year}
@@ -211,5 +236,18 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                 )}
             </DialogContent>
         </Dialog>
+    )
+}
+
+function DetailItem({ label, value }: { label: string, value: string }) {
+    return (
+        <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
+                {label}
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {value}
+            </Typography>
+        </Box>
     )
 }

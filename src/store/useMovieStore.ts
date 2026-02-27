@@ -44,11 +44,11 @@ interface MovieStore {
   addGenre: (name: string) => void
   updateGenre: (oldName: string, newName: string) => void
   deleteGenre: (name: string) => void
-  omdbApiKey: string
-  setOmdbApiKey: (key: string) => void
   addCountry: (name: string, metadata?: CountryMetadata) => void
   updateCountry: (oldName: string, newName: string, metadata?: CountryMetadata) => void
   deleteCountry: (name: string) => void
+  fetchMovieDetails: (imdbId: string) => Promise<any>
+  isLoading: boolean
 }
 
 const initialFilters: SearchFilters = {
@@ -61,11 +61,6 @@ const initialFilters: SearchFilters = {
 
 const useMovieStore = create<MovieStore>((set, get) => ({
   movies: [],
-  omdbApiKey: localStorage.getItem('omdb_api_key') || '7ed67634',
-  setOmdbApiKey: (key: string) => {
-    localStorage.setItem('omdb_api_key', key)
-    set({ omdbApiKey: key })
-  },
   directors: [],
   genres: [],
   countries: [],
@@ -76,13 +71,26 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   countryMetadata: {},
   genreMetadata: {},
   filters: { ...initialFilters },
+  isLoading: false,
 
   decodeUTF8: (str: string) => {
-    try {
-      return decodeURIComponent(escape(str))
-    } catch (e) {
-      return str
+    if (!str) return '';
+    // Detect typical UTF-8 misinterpreted as Latin-1 patterns (e.g., Ã±, Ã¡, etc.)
+    if (/[\u00C2-\u00C3][\u0080-\u00BF]/.test(str)) {
+      try {
+        // Method 1: Most reliable for "double-encoded" or misinterpreted UTF-8
+        return decodeURIComponent(escape(str));
+      } catch (e) {
+        try {
+          // Method 2: TextDecoder fallback
+          const bytes = new Uint8Array(str.split('').map(c => c.charCodeAt(0)));
+          return new TextDecoder('utf-8').decode(bytes);
+        } catch (e2) {
+          return str;
+        }
+      }
     }
+    return str;
   },
 
   normalizeName: (name: string) => {
@@ -93,6 +101,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   },
 
   async fetchInitialData() {
+    set({ isLoading: true })
     try {
       console.log('Iniciando fetch de datos...');
       const [moviesRes, countriesRes, directorsRes, genresRes] = await Promise.all([
@@ -126,11 +135,12 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       const countryMetadata: Record<string, CountryMetadata> = {}
       if (Array.isArray(countriesData)) {
         countriesData.forEach((c: any) => {
-          if (c.countryName) {
-            const name = decodeUTF8(c.countryName)
-            countryIds[name] = c.idcountry
+          const rawName = c.countryName || c.description || ''
+          if (rawName) {
+            const name = decodeUTF8(rawName)
+            countryIds[name] = c.idcountry || c.id || 0
             countryMetadata[name] = {
-              continent: decodeUTF8(c.continent?.description || ''),
+              continent: decodeUTF8(c.continent?.description || c.continentName || ''),
               totalFilm: c.totalFilm || 0,
               totalPerson: c.totalPerson || 0
             }
@@ -248,6 +258,8 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       })
     } catch (error) {
       console.error('Error fetching initial data:', error)
+    } finally {
+      set({ isLoading: false })
     }
   },
 
@@ -258,6 +270,17 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
   resetFilters: () =>
     set({ filters: { ...initialFilters } }),
+
+  fetchMovieDetails: async (imdbId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/Film/GetMovieFromOmdb?imdbid=${imdbId}`)
+      if (!response.ok) throw new Error('Failed to fetch movie details')
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching movie details:', error)
+      return null
+    }
+  },
 
   addMovie: (movie) =>
     set((state) => ({

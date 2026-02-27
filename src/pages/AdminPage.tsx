@@ -36,8 +36,7 @@ export default function AdminPage() {
         genres, addGenre, updateGenre, deleteGenre,
         countries, addCountry, updateCountry, deleteCountry,
         directorMetadata, countryMetadata,
-        directorIds, countryIds, genreIds,
-        omdbApiKey, setOmdbApiKey
+        directorIds, countryIds, genreIds
     } = useMovieStore()
 
     const [tab, setTab] = useState(0)
@@ -161,7 +160,6 @@ export default function AdminPage() {
                 <Tab label="Directores" />
                 <Tab label="Géneros" />
                 <Tab label="Países" />
-                <Tab label="Ajustes" />
             </Tabs>
 
             {/* MOVIES TAB */}
@@ -295,47 +293,6 @@ export default function AdminPage() {
                 </>
             )}
 
-            {/* SETTINGS TAB */}
-            {tab === 4 && (
-                <Paper variant="outlined" sx={{ p: 4, maxWidth: 600 }}>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                        Configuración de OMDb API
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Esta llave se utiliza para obtener automáticamente los pósters de las películas desde IMDb.
-                        Si ves errores 401 en el modal, es probable que necesites una llave nueva.
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <TextField
-                            label="OMDb API Key"
-                            value={omdbApiKey}
-                            onChange={(e) => setOmdbApiKey(e.target.value)}
-                            fullWidth
-                            placeholder="7ed67634"
-                            helperText="La llave se guarda automáticamente en este navegador."
-                        />
-
-                        <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
-                                ¿No tienes una llave?
-                            </Typography>
-                            <Typography variant="body2" sx={{ mb: 2 }}>
-                                Puedes obtener una llave gratuita (1,000 peticiones diarias) registrándote con tu email:
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                href="http://www.omdbapi.com/apikey.aspx"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Obtener llave en omdbapi.com
-                            </Button>
-                        </Box>
-                    </Box>
-                </Paper>
-            )}
 
             {/* MOVIE DIALOG */}
             <Dialog open={movieOpen} onClose={() => setMovieOpen(false)} maxWidth="sm" fullWidth>

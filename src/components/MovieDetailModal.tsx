@@ -26,7 +26,7 @@ interface MovieDetailModalProps {
 }
 
 export default function MovieDetailModal({ movie, onClose }: MovieDetailModalProps) {
-    const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+    const isLoggedIn = useAuthStore((s: any) => s.isLoggedIn)
     const { updateMovie, fetchMovieDetails } = useMovieStore()
     const [isEditing, setIsEditing] = useState(false)
     const [omdbData, setOmdbData] = useState<any>(null)
@@ -37,11 +37,13 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
         if (movie?.imdbID) {
             setLoading(true)
             fetchMovieDetails(movie.imdbID)
-                .then(data => {
-                    if (data && data.Response !== 'False') {
+                .then((data: any) => {
+                    const isSuccess = data && (data.response === 'True' || data.Response === 'True')
+                    if (isSuccess) {
                         setOmdbData(data)
                     }
                 })
+                .catch((err: Error) => console.error('Error fetching details:', err))
                 .finally(() => setLoading(false))
         }
     }, [movie?.imdbID, fetchMovieDetails])
@@ -53,7 +55,8 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
         setIsEditing(false)
     }
 
-    const posterUrl = omdbData?.Poster !== 'N/A' ? omdbData?.Poster : null
+    const poster = omdbData?.poster || omdbData?.Poster
+    const posterUrl = (poster && poster !== 'N/A') ? poster : null
 
     return (
         <Dialog open={!!movie} onClose={onClose} maxWidth="md" fullWidth>
@@ -131,15 +134,15 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                 </Stack>
                             )}
 
-                            {omdbData?.Ratings && omdbData.Ratings.length > 0 && (
+                            {omdbData?.ratings && omdbData.ratings.length > 0 && (
                                 <Box sx={{ width: '100%', mt: 1 }}>
-                                    {omdbData.Ratings.map((r: any) => (
-                                        <Box key={r.Source} sx={{ mb: 1.5 }}>
+                                    {omdbData.ratings.map((r: any) => (
+                                        <Box key={r.source} sx={{ mb: 1.5 }}>
                                             <Typography variant="caption" color="text.secondary" display="block">
-                                                {r.Source}
+                                                {r.source}
                                             </Typography>
                                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                {r.Value}
+                                                {r.value}
                                             </Typography>
                                         </Box>
                                     ))}
@@ -159,21 +162,21 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                 </Typography>
                                 <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.5 }} />
                                 <Typography variant="body2" color="text.secondary">
-                                    {omdbData?.Rated || 'N/A'}
+                                    {omdbData?.rated || 'N/A'}
                                 </Typography>
                                 <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.5 }} />
                                 <Stack direction="row" spacing={0.5} alignItems="center">
                                     <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                     <Typography variant="body2" color="text.secondary">
-                                        {omdbData?.Runtime || movie.duration}
+                                        {omdbData?.runtime || movie.duration}
                                     </Typography>
                                 </Stack>
                             </Stack>
 
                             <Box sx={{ mb: 3 }}>
-                                {omdbData?.Genre ? (
+                                {omdbData?.genre ? (
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                        {omdbData.Genre.split(', ').map((g: string) => (
+                                        {omdbData.genre.split(', ').map((g: string) => (
                                             <Chip key={g} label={g} size="small" variant="outlined" />
                                         ))}
                                     </Box>
@@ -186,8 +189,8 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                 )}
                             </Box>
 
-                            <Typography variant="body1" sx={{ mb: 3, fontStyle: omdbData?.Plot === 'N/A' ? 'italic' : 'normal' }}>
-                                {omdbData?.Plot && omdbData.Plot !== 'N/A' ? omdbData.Plot : 'Sinopsis no disponible.'}
+                            <Typography variant="body1" sx={{ mb: 3, fontStyle: omdbData?.plot === 'N/A' ? 'italic' : 'normal' }}>
+                                {omdbData?.plot && omdbData.plot !== 'N/A' ? omdbData.plot : 'Sinopsis no disponible.'}
                             </Typography>
 
                             <Box sx={{
@@ -197,28 +200,19 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                 mb: 3
                             }}>
                                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="Director/es" value={omdbData?.Director || movie.directors.join(', ')} />
+                                    <DetailItem label="Director/es" value={omdbData?.director || movie.directors.join(', ')} />
                                 </Box>
                                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="Escritor/es" value={omdbData?.Writer || 'N/A'} />
-                                </Box>
-                                <Box sx={{ gridColumn: 'span 2' }}>
-                                    <DetailItem label="Actores" value={omdbData?.Actors || 'N/A'} />
-                                </Box>
-                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="Idioma" value={omdbData?.Language || 'N/A'} />
-                                </Box>
-                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="País/es" value={omdbData?.Country || movie.countries.join(', ')} />
+                                    <DetailItem label="País/es" value={omdbData?.country || movie.countries.join(', ')} />
                                 </Box>
                             </Box>
 
-                            {omdbData?.Awards && omdbData.Awards !== 'N/A' && (
+                            {omdbData?.awards && omdbData.awards !== 'N/A' && (
                                 <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                                     <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
                                         Premios
                                     </Typography>
-                                    <Typography variant="body2">{omdbData.Awards}</Typography>
+                                    <Typography variant="body2">{omdbData.awards}</Typography>
                                 </Box>
                             )}
 

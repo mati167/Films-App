@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Movie, SearchFilters } from '@/types/movie'
+import { API_BASE_URL } from '../config'
 
 export interface DirectorMetadata {
   country?: string
@@ -91,14 +92,14 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       .replace(/\s+/g, ' ')      // Colapsa espacios
   },
 
-  fetchInitialData: async () => {
+  async fetchInitialData() {
     try {
       console.log('Iniciando fetch de datos...');
       const [moviesRes, countriesRes, directorsRes, genresRes] = await Promise.all([
-        fetch('/api/Film/GetFilms'),
-        fetch('/api/Country/GetCountries'),
-        fetch('/api/person/GetPersonList'),
-        fetch('/api/Genre/GetGenres')
+        fetch(`${API_BASE_URL}/Film/GetFilms`),
+        fetch(`${API_BASE_URL}/Country/GetCountries`),
+        fetch(`${API_BASE_URL}/person/GetPersonList`),
+        fetch(`${API_BASE_URL}/Genre/GetGenres`)
       ])
 
       if (!moviesRes.ok || !countriesRes.ok || !directorsRes.ok || !genresRes.ok) {

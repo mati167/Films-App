@@ -16,13 +16,9 @@ const useAuthStore = create<AuthState>()(
             isLoggedIn: false,
             user: null,
             error: null,
-            login: (username, password) => {
-                // Mock validation
-                if (username === 'admin' && password === 'admin123') {
-                    set({ isLoggedIn: true, user: 'Administrador', error: null })
-                    return true
-                }
-                set({ error: 'Credenciales incorrectas' })
+            login: (_username, _password) => {
+                // Login disabled
+                set({ error: 'El login está deshabilitado' })
                 return false
             },
             logout: () => set({ isLoggedIn: false, user: null, error: null }),

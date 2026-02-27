@@ -99,6 +99,7 @@ export default function Header() {
           ))}
 
           <Box sx={{ ml: 2, display: 'flex', gap: 1 }}>
+            {/* 
             {isLoggedIn ? (
               <>
                 <Button
@@ -125,6 +126,7 @@ export default function Header() {
                 Login (Admin)
               </Button>
             )}
+            */}
           </Box>
         </Box>
       </Toolbar>

@@ -18,7 +18,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:4351',
+        target: 'http://inventory-xjkj.onrender.com',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },

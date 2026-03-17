@@ -27,15 +27,24 @@ function HHMMSSToMinutes(hhmmss: string): number {
 }
 
 export default function MovieSearch() {
-  const { filters, setFilter, resetFilters, countries } = useMovieStore()
+  const { filters, setFilter, resetFilters, directors, genres, countries, directorIds, genreIds, countryIds } = useMovieStore()
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const hasActiveFilters =
     filters.name ||
-    filters.country ||
-    filters.director ||
-    filters.genre ||
+    filters.country !== null ||
+    filters.director !== null ||
+    filters.genre !== null ||
     filters.maxDuration !== null
+
+  // Build option lists: { id: number, label: string }
+  const directorOptions = directors.map((name) => ({ id: directorIds[name], label: name }))
+  const genreOptions = genres.map((name) => ({ id: genreIds[name], label: name }))
+  const countryOptions = countries.map((name) => ({ id: countryIds[name], label: name }))
+
+  const selectedDirector = directorOptions.find((o) => o.id === filters.director) ?? null
+  const selectedGenre = genreOptions.find((o) => o.id === filters.genre) ?? null
+  const selectedCountry = countryOptions.find((o) => o.id === filters.country) ?? null
 
   return (
     <Paper
@@ -99,24 +108,28 @@ export default function MovieSearch() {
           }}
         >
           <Autocomplete
-            options={countries}
-            value={filters.country}
-            onChange={(_, v) => setFilter('country', v || '')}
+            options={countryOptions}
+            value={selectedCountry}
+            getOptionLabel={(o) => o.label}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_, v) => setFilter('country', v ? v.id : null)}
             renderInput={(params) => <TextField {...params} size="small" label="País" placeholder="ej. Argentina" />}
           />
-          <TextField
-            size="small"
-            label="Director"
-            placeholder="ej. Tarantino"
-            value={filters.director}
-            onChange={(e) => setFilter('director', e.target.value)}
+          <Autocomplete
+            options={directorOptions}
+            value={selectedDirector}
+            getOptionLabel={(o) => o.label}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_, v) => setFilter('director', v ? v.id : null)}
+            renderInput={(params) => <TextField {...params} size="small" label="Director" placeholder="ej. Tarantino" />}
           />
-          <TextField
-            size="small"
-            label="Género"
-            placeholder="ej. Drama"
-            value={filters.genre}
-            onChange={(e) => setFilter('genre', e.target.value)}
+          <Autocomplete
+            options={genreOptions}
+            value={selectedGenre}
+            getOptionLabel={(o) => o.label}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_, v) => setFilter('genre', v ? v.id : null)}
+            renderInput={(params) => <TextField {...params} size="small" label="Género" placeholder="ej. Drama" />}
           />
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>

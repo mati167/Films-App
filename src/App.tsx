@@ -31,7 +31,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/films" replace />} />
             <Route path="/films" element={<HomePage />} />
             <Route path="/countries" element={<CountriesListPage />} />
-            <Route path="/country/:country" element={<CountryPage />} />
+            <Route path="/country/:id" element={<CountryPage />} />
             <Route path="/directors" element={<DirectorsListPage />} />
             <Route path="/director/:id" element={<DirectorPage />} />
             <Route path="/genres" element={<GenresListPage />} />

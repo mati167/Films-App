@@ -2,10 +2,10 @@ export interface Movie {
   id: number
   name: string
   year: number
-  directors: string[]
+  directors: number[]
   duration: string
-  countries: string[]
-  genres: string[]
+  countries: number[]
+  genres: number[]
   imdbUrl: string
   rottenTomatoesUrl: string
   letterboxdUrl: string
@@ -14,8 +14,8 @@ export interface Movie {
 
 export interface SearchFilters {
   name: string
-  country: string
-  director: string
-  genre: string
+  country: number | null
+  director: number | null
+  genre: number | null
   maxDuration: string | null
 }

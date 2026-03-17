@@ -25,6 +25,10 @@ interface MovieStore {
   countryIds: Record<string, number>
   directorIds: Record<string, number>
   genreIds: Record<string, number>
+  // Inverse lookups: id → display name
+  directorById: Record<number, string>
+  genreById: Record<number, string>
+  countryById: Record<number, string>
   directorMetadata: Record<string, DirectorMetadata>
   countryMetadata: Record<string, CountryMetadata>
   genreMetadata: Record<string, GenreMetadata>
@@ -53,9 +57,9 @@ interface MovieStore {
 
 const initialFilters: SearchFilters = {
   name: '',
-  country: '',
-  director: '',
-  genre: '',
+  country: null,
+  director: null,
+  genre: null,
   maxDuration: null,
 }
 
@@ -67,6 +71,9 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   countryIds: {},
   directorIds: {},
   genreIds: {},
+  directorById: {},
+  genreById: {},
+  countryById: {},
   directorMetadata: {},
   countryMetadata: {},
   genreMetadata: {},
@@ -75,14 +82,11 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
   decodeUTF8: (str: string) => {
     if (!str) return '';
-    // Detect typical UTF-8 misinterpreted as Latin-1 patterns (e.g., Ã±, Ã¡, etc.)
     if (/[\u00C2-\u00C3][\u0080-\u00BF]/.test(str)) {
       try {
-        // Method 1: Most reliable for "double-encoded" or misinterpreted UTF-8
         return decodeURIComponent(escape(str));
       } catch (e) {
         try {
-          // Method 2: TextDecoder fallback
           const bytes = new Uint8Array(str.split('').map(c => c.charCodeAt(0)));
           return new TextDecoder('utf-8').decode(bytes);
         } catch (e2) {
@@ -96,8 +100,8 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   normalizeName: (name: string) => {
     return name
       .trim()
-      .replace(/\s*,\s*/g, ', ') // Asegura "Apellido, Nombre"
-      .replace(/\s+/g, ' ')      // Colapsa espacios
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/\s+/g, ' ')
   },
 
   async fetchInitialData() {
@@ -120,25 +124,23 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       const directorsData = await directorsRes.json()
       const genresData = await genresRes.json()
 
-      console.log('Respuesta Películas (Raw):', moviesData);
-      console.log('Respuesta Países (Raw):', countriesData);
-      console.log('Respuesta Personas (Raw):', directorsData);
-      console.log('Respuesta Géneros (Raw):', genresData);
-
-      // Mapeo para Países
       const { decodeUTF8, normalizeName } = get()
-      const countries = Array.isArray(countriesData)
-        ? countriesData.map((c: any) => decodeUTF8(c.countryName || ''))
-        : []
 
+      // ── Países ──────────────────────────────────────────────────────────────
+      const countries: string[] = []
       const countryIds: Record<string, number> = {}
+      const countryById: Record<number, string> = {}
       const countryMetadata: Record<string, CountryMetadata> = {}
+
       if (Array.isArray(countriesData)) {
         countriesData.forEach((c: any) => {
           const rawName = c.countryName || c.description || ''
           if (rawName) {
             const name = decodeUTF8(rawName)
-            countryIds[name] = c.idcountry || c.id || 0
+            const id: number = c.idcountry || c.id || 0
+            countries.push(name)
+            countryIds[name] = id
+            countryById[id] = name
             countryMetadata[name] = {
               continent: decodeUTF8(c.continent?.description || c.continentName || ''),
               totalFilm: c.totalFilm || 0,
@@ -148,8 +150,9 @@ const useMovieStore = create<MovieStore>((set, get) => ({
         })
       }
 
-      // Mapeo para Directores (Personas)
+      // ── Directores (Personas) ────────────────────────────────────────────────
       const directorIds: Record<string, number> = {}
+      const directorById: Record<number, string> = {}
       const directorMetadata: Record<string, DirectorMetadata> = {}
       const directors: string[] = []
 
@@ -157,31 +160,47 @@ const useMovieStore = create<MovieStore>((set, get) => ({
         directorsData.forEach((d: any) => {
           const name = decodeUTF8(d.name || '').trim()
           const lastName = decodeUTF8(d.lastName || '').trim()
-          const id = d.idpersona || d.idPersona || 0
+          const id: number = d.idpersona || d.idPersona || 0
 
-          // NOMBRE = lastname, name
+          // Canonical format: "Apellido, Nombre"
           const fullNameSorted = normalizeName(`${lastName}, ${name}`)
-          const fullNameNatural = normalizeName(`${name} ${lastName}`)
 
           if (!directors.includes(fullNameSorted)) {
             directors.push(fullNameSorted)
           }
 
-          const possibleKeys = [fullNameSorted, fullNameNatural, lastName, name]
-          possibleKeys.forEach(key => {
-            const trimmedKey = key.trim()
-            if (trimmedKey) {
-              directorIds[trimmedKey] = id
-              directorMetadata[trimmedKey] = {
-                country: decodeUTF8(d.countries?.[0]?.description || ''),
-                totalFilm: d.totalFilm || 0
-              }
-            }
-          })
+          directorIds[fullNameSorted] = id
+          directorById[id] = fullNameSorted
+          directorMetadata[fullNameSorted] = {
+            country: decodeUTF8(d.countries?.[0]?.description || ''),
+            totalFilm: d.totalFilm || 0
+          }
         })
       }
 
-      // Mapeo para Películas
+      // ── Géneros ──────────────────────────────────────────────────────────────
+      const genres: string[] = []
+      const genreIds: Record<string, number> = {}
+      const genreById: Record<number, string> = {}
+      const genreMetadata: Record<string, GenreMetadata> = {}
+
+      if (Array.isArray(genresData)) {
+        genresData.forEach((g: any) => {
+          if (g.description) {
+            const name = normalizeName(decodeUTF8(g.description))
+            const id: number = g.idgenre
+            genres.push(name)
+            genreIds[name] = id
+            genreById[id] = name
+            genreMetadata[name] = { totalFilm: g.totalFilm || 0 }
+          }
+        })
+      }
+
+      // ── Películas ─────────────────────────────────────────────────────────────
+      // We build a temporary name→id map for countries to resolve film countries by ID
+      const tempCountryIdByName: Record<string, number> = countryIds
+
       const mappedMovies: Movie[] = Array.isArray(moviesData)
         ? moviesData.map((m: any) => {
           let hours = 0
@@ -192,30 +211,46 @@ const useMovieStore = create<MovieStore>((set, get) => ({
             hours = parts[0] || 0
             minutes = parts[1] || 0
             const seconds = parts[2] || 0
-
             if (seconds > 0) {
               minutes += 1
-              if (minutes >= 60) {
-                minutes = 0
-                hours += 1
-              }
+              if (minutes >= 60) { minutes = 0; hours += 1 }
             }
           } else if (m.duration && typeof m.duration === 'object') {
-            // Fallback for old object format
             hours = m.duration.hour || 0
             minutes = m.duration.minute || 0
           }
 
           const durationStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 
+          // Directors: the films API returns directed[].id (NOT idpersona)
+          const movieDirectorIds: number[] = Array.isArray(m.directed)
+            ? m.directed
+                .map((d: any) => d.idpersona || d.idPersona || d.id || 0)
+                .filter((id: number) => id > 0)
+            : []
+
+          // Genres: the films API returns genres[].id (NOT idgenre)
+          const movieGenreIds: number[] = Array.isArray(m.genres)
+            ? m.genres
+                .map((g: any) => g.idgenre || g.id || 0)
+                .filter((id: number) => id > 0)
+            : []
+
+          // Countries: the films API returns countries[].id (NOT idcountry)
+          const movieCountryIds: number[] = Array.isArray(m.countries)
+            ? m.countries
+                .map((c: any) => c.idcountry || c.id || 0)
+                .filter((id: number) => id > 0)
+            : []
+
           return {
             id: m.idfilm,
             name: decodeUTF8(m.filmName || ''),
             year: m.year,
             duration: durationStr,
-            directors: Array.isArray(m.directed) ? m.directed.map((d: any) => normalizeName(decodeUTF8(d.description || ''))) : [],
-            countries: Array.isArray(m.countries) ? m.countries.map((c: any) => decodeUTF8(c.description || '')) : [],
-            genres: Array.isArray(m.genres) ? m.genres.map((g: any) => normalizeName(decodeUTF8(g.description || ''))) : [],
+            directors: movieDirectorIds,
+            countries: movieCountryIds,
+            genres: movieGenreIds,
             imdbUrl: m.imdbUrl || '',
             rottenTomatoesUrl: m.rottenTomatoesUrl || '',
             letterboxdUrl: m.letterboxdUrl || '',
@@ -224,35 +259,23 @@ const useMovieStore = create<MovieStore>((set, get) => ({
         })
         : []
 
-      // Mapeo para Géneros
-      const genres: string[] = []
-      const genreIds: Record<string, number> = {}
-      const genreMetadata: Record<string, GenreMetadata> = {}
-
-      if (Array.isArray(genresData)) {
-        genresData.forEach((g: any) => {
-          if (g.description) {
-            const name = normalizeName(decodeUTF8(g.description))
-            genres.push(name)
-            genreIds[name] = g.idgenre
-            genreMetadata[name] = { totalFilm: g.totalFilm || 0 }
-          }
-        })
-      }
-
       console.log('Películas Mapeadas:', mappedMovies);
-      console.log('Metadatos Directores:', directorMetadata);
-      console.log('Metadatos Géneros:', genreMetadata);
+      console.log('directorById:', directorById);
+      console.log('genreById:', genreById);
+      console.log('countryById:', countryById);
 
       set({
         movies: mappedMovies,
-        countries: Array.from(new Set(countries as string[])).sort(),
+        countries: Array.from(new Set(countries)).sort(),
         countryIds,
+        countryById,
         directors: Array.from(new Set(directors)).sort(),
         directorIds,
+        directorById,
         directorMetadata,
         genres: Array.from(new Set(genres)).sort(),
         genreIds,
+        genreById,
         genreMetadata,
         countryMetadata,
       })
@@ -305,32 +328,24 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
   updateDirector: (oldName, newName, metadata) =>
     set((state) => {
-      const newMetadata = { ...state.directorMetadata }
-      if (metadata || newMetadata[oldName]) {
-        newMetadata[newName] = metadata || newMetadata[oldName]
-        if (oldName !== newName) delete newMetadata[oldName]
+      const newMeta = { ...state.directorMetadata }
+      if (metadata || newMeta[oldName]) {
+        newMeta[newName] = metadata || newMeta[oldName]
+        if (oldName !== newName) delete newMeta[oldName]
       }
       return {
         directors: state.directors.map((d) => (d === oldName ? newName : d)).sort(),
-        directorMetadata: newMetadata,
-        movies: state.movies.map((m) => ({
-          ...m,
-          directors: m.directors.map((d) => (d === oldName ? newName : d)),
-        })),
+        directorMetadata: newMeta,
       }
     }),
 
   deleteDirector: (name) =>
     set((state) => {
-      const newMetadata = { ...state.directorMetadata }
-      delete newMetadata[name]
+      const newMeta = { ...state.directorMetadata }
+      delete newMeta[name]
       return {
         directors: state.directors.filter((d) => d !== name),
-        directorMetadata: newMetadata,
-        movies: state.movies.map((m) => ({
-          ...m,
-          directors: m.directors.filter((d) => d !== name),
-        })),
+        directorMetadata: newMeta,
       }
     }),
 
@@ -342,19 +357,11 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   updateGenre: (oldName, newName) =>
     set((state) => ({
       genres: state.genres.map((g) => (g === oldName ? newName : g)).sort(),
-      movies: state.movies.map((m) => ({
-        ...m,
-        genres: m.genres.map((g) => (g === oldName ? newName : g)),
-      })),
     })),
 
   deleteGenre: (name) =>
     set((state) => ({
       genres: state.genres.filter((g) => g !== name),
-      movies: state.movies.map((m) => ({
-        ...m,
-        genres: m.genres.filter((g) => g !== name),
-      })),
     })),
 
   addCountry: (name, metadata) =>
@@ -365,32 +372,24 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
   updateCountry: (oldName, newName, metadata) =>
     set((state) => {
-      const newMetadata = { ...state.countryMetadata }
-      if (metadata || newMetadata[oldName]) {
-        newMetadata[newName] = metadata || newMetadata[oldName]
-        if (oldName !== newName) delete newMetadata[oldName]
+      const newMeta = { ...state.countryMetadata }
+      if (metadata || newMeta[oldName]) {
+        newMeta[newName] = metadata || newMeta[oldName]
+        if (oldName !== newName) delete newMeta[oldName]
       }
       return {
         countries: state.countries.map((c) => (c === oldName ? newName : c)).sort(),
-        countryMetadata: newMetadata,
-        movies: state.movies.map((m) => ({
-          ...m,
-          countries: m.countries.map((c) => (c === oldName ? newName : c)),
-        })),
+        countryMetadata: newMeta,
       }
     }),
 
   deleteCountry: (name) =>
     set((state) => {
-      const newMetadata = { ...state.countryMetadata }
-      delete newMetadata[name]
+      const newMeta = { ...state.countryMetadata }
+      delete newMeta[name]
       return {
         countries: state.countries.filter((c) => c !== name),
-        countryMetadata: newMetadata,
-        movies: state.movies.map((m) => ({
-          ...m,
-          countries: m.countries.filter((c) => c !== name),
-        })),
+        countryMetadata: newMeta,
       }
     }),
 
@@ -401,9 +400,9 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
     return movies.filter((movie) => {
       const matchesName = !filters.name || norm(movie.name).includes(norm(filters.name))
-      const matchesCountry = !filters.country || movie.countries.some((c) => norm(c) === norm(filters.country))
-      const matchesDirector = !filters.director || movie.directors.some((d) => norm(d) === norm(filters.director))
-      const matchesGenre = !filters.genre || movie.genres.some((g) => norm(g) === norm(filters.genre))
+      const matchesCountry = filters.country === null || movie.countries.includes(filters.country)
+      const matchesDirector = filters.director === null || movie.directors.includes(filters.director)
+      const matchesGenre = filters.genre === null || movie.genres.includes(filters.genre)
       const matchesDuration = !filters.maxDuration || movie.duration <= filters.maxDuration
 
       return matchesName && matchesCountry && matchesDirector && matchesGenre && matchesDuration

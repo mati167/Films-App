@@ -11,20 +11,33 @@ import { ContinentShape } from '@/utils/continentIcons'
 import type { Movie } from '@/types/movie'
 
 export default function CountryPage() {
-  const { country } = useParams<{ country: string }>()
-  const getFilteredMovies = useMovieStore((s) => s.getFilteredMovies)
+  const { id } = useParams<{ id: string }>()
+  const numId = Number(id)
+
+  const countryById = useMovieStore((s) => s.countryById)
   const countryMetadata = useMovieStore((s) => s.countryMetadata)
+  const getFilteredMovies = useMovieStore((s) => s.getFilteredMovies)
   const filters = useMovieStore((s) => s.filters)
   const movies = useMovieStore((s) => s.movies)
-  const decodedCountry = decodeURIComponent(country || '')
 
-  const continent = countryMetadata[decodedCountry]?.continent
+  const countryName = countryById[numId]
+  const continent = countryName ? countryMetadata[countryName]?.continent : undefined
 
   const filteredMovies = useMemo(
-    () => getFilteredMovies().filter((m: Movie) => m.countries.includes(decodedCountry)),
+    () => getFilteredMovies().filter((m: Movie) => m.countries.includes(numId)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getFilteredMovies, filters, decodedCountry, movies]
+    [getFilteredMovies, filters, numId, movies]
   )
+
+  if (!countryName) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary">
+          País no encontrado
+        </Typography>
+      </Box>
+    )
+  }
 
   return (
     <Box>
@@ -50,7 +63,7 @@ export default function CountryPage() {
               )}
             </Box>
             <Typography variant="h4" sx={{ color: 'text.primary' }}>
-              {decodedCountry}
+              {countryName}
             </Typography>
           </Box>
         </Box>

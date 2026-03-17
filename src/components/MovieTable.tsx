@@ -15,7 +15,6 @@ import ExternalLinks from './ExternalLinks'
 import { getCountryFlagUrl } from '@/utils/countryFlags'
 import Tooltip from '@mui/material/Tooltip'
 import useMovieStore from '@/store/useMovieStore'
-import type { DirectorMetadata, CountryMetadata } from '@/store/useMovieStore'
 import MovieDetailModal from './MovieDetailModal'
 
 type SortKey = 'name' | 'year' | 'duration' | 'directors' | 'countries' | 'genres'
@@ -29,8 +28,9 @@ export default function MovieTable({ movies }: MovieTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
-  const directorIds = useMovieStore((s) => s.directorIds)
-  const genreIds = useMovieStore((s) => s.genreIds)
+  const directorById = useMovieStore((s) => s.directorById)
+  const genreById = useMovieStore((s) => s.genreById)
+  const countryById = useMovieStore((s) => s.countryById)
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -42,14 +42,14 @@ export default function MovieTable({ movies }: MovieTableProps) {
   }
 
   const sortedMovies = useMemo(() => {
-    let list: (Movie & { displayCountry?: string })[] = movies
+    type ExpandedMovie = Movie & { displayCountryId?: number }
+    let list: ExpandedMovie[] = movies
 
     if (sortKey === 'countries') {
-      // Expand movies: repeat for each country
-      list = movies.flatMap((movie) =>
+      list = movies.flatMap((movie): ExpandedMovie[] =>
         movie.countries.length > 0
-          ? movie.countries.map((country) => ({ ...movie, displayCountry: country }))
-          : [{ ...movie, displayCountry: '' }]
+          ? movie.countries.map((cId) => ({ ...movie, displayCountryId: cId }))
+          : [{ ...movie }]
       )
     }
 
@@ -65,19 +65,28 @@ export default function MovieTable({ movies }: MovieTableProps) {
         case 'duration':
           comparison = a.duration.localeCompare(b.duration)
           break
-        case 'directors':
-          comparison = (a.directors[0] || '').localeCompare(b.directors[0] || '')
+        case 'directors': {
+          const nameA = directorById[a.directors[0]] || ''
+          const nameB = directorById[b.directors[0]] || ''
+          comparison = nameA.localeCompare(nameB)
           break
-        case 'countries':
-          comparison = (a.displayCountry || '').localeCompare(b.displayCountry || '')
+        }
+        case 'countries': {
+          const nameA = countryById[(a as ExpandedMovie).displayCountryId ?? a.countries[0]] || ''
+          const nameB = countryById[(b as ExpandedMovie).displayCountryId ?? b.countries[0]] || ''
+          comparison = nameA.localeCompare(nameB)
           break
-        case 'genres':
-          comparison = (a.genres[0] || '').localeCompare(b.genres[0] || '')
+        }
+        case 'genres': {
+          const nameA = genreById[a.genres[0]] || ''
+          const nameB = genreById[b.genres[0]] || ''
+          comparison = nameA.localeCompare(nameB)
           break
+        }
       }
       return sortDirection === 'asc' ? comparison : -comparison
     })
-  }, [movies, sortKey, sortDirection])
+  }, [movies, sortKey, sortDirection, directorById, genreById, countryById])
 
   if (movies.length === 0) {
     return (
@@ -170,8 +179,8 @@ export default function MovieTable({ movies }: MovieTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedMovies.map((movie) => (
-            <TableRow key={`${movie.id}-${movie.displayCountry || 'all'}`}>
+          {(sortedMovies as (Movie & { displayCountryId?: number })[]).map((movie) => (
+            <TableRow key={`${movie.id}-${movie.displayCountryId ?? 'all'}`}>
               <TableCell align="center">
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                   {movie.id}
@@ -201,14 +210,17 @@ export default function MovieTable({ movies }: MovieTableProps) {
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                  {movie.directors.map((director) => (
-                    <ChipLink
-                      key={director}
-                      label={director}
-                      to={`/director/${directorIds[director] || 0}`}
-                      color="secondary"
-                    />
-                  ))}
+                  {movie.directors.map((dirId) => {
+                    const dirName = directorById[dirId] || String(dirId)
+                    return (
+                      <ChipLink
+                        key={dirId}
+                        label={dirName}
+                        to={`/director/${dirId}`}
+                        color="secondary"
+                      />
+                    )
+                  })}
                 </Box>
               </TableCell>
               <TableCell align="center">
@@ -218,43 +230,48 @@ export default function MovieTable({ movies }: MovieTableProps) {
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                  {/* Si hay un país de visualización (por sorteo), ponerlo primero */}
                   {[
-                    ...(movie.displayCountry ? [movie.displayCountry] : []),
-                    ...movie.countries.filter((c) => c !== movie.displayCountry),
-                  ].map((country) => (
-                    <Tooltip key={country} title={country} arrow>
-                      <Box component="span">
-                        <ChipLink
-                          label=""
-                          to={`/country/${encodeURIComponent(country)}`}
-                          sx={{
-                            p: 0,
-                            minWidth: 32,
-                            height: 22,
-                            backgroundImage: `url(${getCountryFlagUrl(country)})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255,255,255,0.1)'
-                          }}
-                        />
-                      </Box>
-                    </Tooltip>
-                  ))}
+                    ...(movie.displayCountryId ? [movie.displayCountryId] : []),
+                    ...movie.countries.filter((c) => c !== movie.displayCountryId),
+                  ].map((cId) => {
+                    const countryName = countryById[cId] || String(cId)
+                    return (
+                      <Tooltip key={cId} title={countryName} arrow>
+                        <Box component="span">
+                          <ChipLink
+                            label=""
+                            to={`/country/${cId}`}
+                            sx={{
+                              p: 0,
+                              minWidth: 32,
+                              height: 22,
+                              backgroundImage: `url(${getCountryFlagUrl(countryName)})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(255,255,255,0.1)'
+                            }}
+                          />
+                        </Box>
+                      </Tooltip>
+                    )
+                  })}
                 </Box>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                  {movie.genres.map((genre) => (
-                    <ChipLink
-                      key={genre}
-                      label={genre}
-                      to={`/genre/${genreIds[genre] || 0}`}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
+                  {movie.genres.map((gId) => {
+                    const genreName = genreById[gId] || String(gId)
+                    return (
+                      <ChipLink
+                        key={gId}
+                        label={genreName}
+                        to={`/genre/${gId}`}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )
+                  })}
                 </Box>
               </TableCell>
               <TableCell align="center">

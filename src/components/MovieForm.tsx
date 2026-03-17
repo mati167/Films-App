@@ -15,7 +15,12 @@ interface MovieFormProps {
 }
 
 export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel = 'Guardar' }: MovieFormProps) {
-    const { directors, genres, countries } = useMovieStore()
+    const { directors, genres, countries, directorIds, genreIds, countryIds, directorById, genreById, countryById } = useMovieStore()
+
+    // Build option lists
+    const directorOptions = directors.map((name) => ({ id: directorIds[name], label: name }))
+    const genreOptions = genres.map((name) => ({ id: genreIds[name], label: name }))
+    const countryOptions = countries.map((name) => ({ id: countryIds[name], label: name }))
 
     const [formData, setFormData] = useState<Omit<Movie, 'id'>>({
         name: initialData?.name || '',
@@ -34,6 +39,10 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
         e.preventDefault()
         onSubmit(formData)
     }
+
+    const selectedDirectors = directorOptions.filter((o) => formData.directors.includes(o.id))
+    const selectedGenres = genreOptions.filter((o) => formData.genres.includes(o.id))
+    const selectedCountries = countryOptions.filter((o) => formData.countries.includes(o.id))
 
     return (
         <form onSubmit={handleSubmit}>
@@ -67,15 +76,17 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
 
                 <Autocomplete
                     multiple
-                    options={directors}
-                    value={formData.directors}
-                    onChange={(_, v) => setFormData({ ...formData, directors: v })}
+                    options={directorOptions}
+                    value={selectedDirectors}
+                    getOptionLabel={(o) => o.label}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    onChange={(_, v) => setFormData({ ...formData, directors: v.map((o) => o.id) })}
                     renderInput={(params) => <TextField {...params} label="Directores" placeholder="Seleccionar..." />}
                     renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
                             const { key, ...tagProps } = getTagProps({ index })
                             return (
-                                <Chip key={key} variant="outlined" label={option} {...tagProps} size="small" />
+                                <Chip key={key} variant="outlined" label={option.label} {...tagProps} size="small" />
                             )
                         })
                     }
@@ -83,15 +94,17 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
 
                 <Autocomplete
                     multiple
-                    options={genres}
-                    value={formData.genres}
-                    onChange={(_, v) => setFormData({ ...formData, genres: v })}
+                    options={genreOptions}
+                    value={selectedGenres}
+                    getOptionLabel={(o) => o.label}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    onChange={(_, v) => setFormData({ ...formData, genres: v.map((o) => o.id) })}
                     renderInput={(params) => <TextField {...params} label="Géneros" placeholder="Seleccionar..." />}
                     renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
                             const { key, ...tagProps } = getTagProps({ index })
                             return (
-                                <Chip key={key} variant="outlined" label={option} {...tagProps} size="small" />
+                                <Chip key={key} variant="outlined" label={option.label} {...tagProps} size="small" />
                             )
                         })
                     }
@@ -99,15 +112,17 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
 
                 <Autocomplete
                     multiple
-                    options={countries}
-                    value={formData.countries}
-                    onChange={(_, v) => setFormData({ ...formData, countries: v })}
+                    options={countryOptions}
+                    value={selectedCountries}
+                    getOptionLabel={(o) => o.label}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    onChange={(_, v) => setFormData({ ...formData, countries: v.map((o) => o.id) })}
                     renderInput={(params) => <TextField {...params} label="Países" placeholder="Seleccionar..." />}
                     renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
                             const { key, ...tagProps } = getTagProps({ index })
                             return (
-                                <Chip key={key} variant="outlined" label={option} {...tagProps} size="small" />
+                                <Chip key={key} variant="outlined" label={option.label} {...tagProps} size="small" />
                             )
                         })
                     }

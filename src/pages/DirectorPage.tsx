@@ -11,27 +11,24 @@ import { getCountryFlag } from '@/utils/countryFlags'
 
 export default function DirectorPage() {
   const { id } = useParams<{ id: string }>()
-  const directorIds = useMovieStore((s) => s.directorIds)
+  const numId = Number(id)
+
+  const directorById = useMovieStore((s) => s.directorById)
   const directorMetadata = useMovieStore((s) => s.directorMetadata)
   const getFilteredMovies = useMovieStore((s) => s.getFilteredMovies)
   const filters = useMovieStore((s) => s.filters)
   const movies = useMovieStore((s) => s.movies)
 
-  const directorName = useMemo(() => {
-    return Object.keys(directorIds).find((name) => directorIds[name] === Number(id))
-  }, [id, directorIds])
-
+  const directorName = directorById[numId]
   const origin = directorName ? directorMetadata[directorName]?.country : null
 
   const directorMoviesTotal = useMemo(() => {
-    if (!directorName) return 0
-    return movies.filter(m => m.directors.includes(directorName)).length
-  }, [directorName, movies])
+    return movies.filter(m => m.directors.includes(numId)).length
+  }, [numId, movies])
 
   const filteredMovies = useMemo(() => {
-    if (!directorName) return []
-    return getFilteredMovies().filter((m) => m.directors.includes(directorName))
-  }, [getFilteredMovies, filters, directorName, movies])
+    return getFilteredMovies().filter((m) => m.directors.includes(numId))
+  }, [getFilteredMovies, filters, numId, movies])
 
   if (!directorName) {
     return (

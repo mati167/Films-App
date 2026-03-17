@@ -10,24 +10,22 @@ import MovieSearch from '@/components/MovieSearch'
 
 export default function GenrePage() {
   const { id } = useParams<{ id: string }>()
-  const genreIds = useMovieStore((s) => s.genreIds)
+  const numId = Number(id)
+
+  const genreById = useMovieStore((s) => s.genreById)
   const getFilteredMovies = useMovieStore((s) => s.getFilteredMovies)
   const filters = useMovieStore((s) => s.filters)
   const movies = useMovieStore((s) => s.movies)
 
-  const genreName = useMemo(() => {
-    return Object.keys(genreIds).find((name) => genreIds[name] === Number(id))
-  }, [id, genreIds])
+  const genreName = genreById[numId]
 
   const genreMoviesTotal = useMemo(() => {
-    if (!genreName) return 0
-    return movies.filter(m => m.genres.includes(genreName)).length
-  }, [genreName, movies])
+    return movies.filter(m => m.genres.includes(numId)).length
+  }, [numId, movies])
 
   const filteredMovies = useMemo(() => {
-    if (!genreName) return []
-    return getFilteredMovies().filter((m) => m.genres.includes(genreName))
-  }, [getFilteredMovies, filters, genreName, movies])
+    return getFilteredMovies().filter((m) => m.genres.includes(numId))
+  }, [getFilteredMovies, filters, numId, movies])
 
   if (!genreName) {
     return (

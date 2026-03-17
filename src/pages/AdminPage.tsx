@@ -36,7 +36,8 @@ export default function AdminPage() {
         genres, addGenre, updateGenre, deleteGenre,
         countries, addCountry, updateCountry, deleteCountry,
         directorMetadata, countryMetadata,
-        directorIds, countryIds, genreIds
+        directorIds, countryIds, genreIds,
+        directorById
     } = useMovieStore()
 
     const [tab, setTab] = useState(0)
@@ -69,7 +70,11 @@ export default function AdminPage() {
             let comp = 0
             if (movieSortKey === 'name') comp = a.name.localeCompare(b.name)
             else if (movieSortKey === 'year') comp = a.year - b.year
-            else if (movieSortKey === 'directors') comp = (a.directors[0] || '').localeCompare(b.directors[0] || '')
+            else if (movieSortKey === 'directors') {
+                const nameA = directorById[a.directors[0]] || ''
+                const nameB = directorById[b.directors[0]] || ''
+                comp = nameA.localeCompare(nameB)
+            }
 
             return movieSortDir === 'asc' ? comp : -comp
         })
@@ -215,7 +220,7 @@ export default function AdminPage() {
                                         </TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>{movie.name}</TableCell>
                                         <TableCell>{movie.year}</TableCell>
-                                        <TableCell>{movie.directors.join(', ')}</TableCell>
+                                        <TableCell>{movie.directors.map(dId => directorById[dId] || String(dId)).join(', ')}</TableCell>
                                         <TableCell align="right">
                                             <IconButton onClick={() => handleMovieOpen(movie)} color="primary"><EditIcon /></IconButton>
                                             <IconButton onClick={() => deleteMovie(movie.id)} color="error"><DeleteIcon /></IconButton>

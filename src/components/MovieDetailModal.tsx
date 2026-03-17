@@ -27,7 +27,7 @@ interface MovieDetailModalProps {
 
 export default function MovieDetailModal({ movie, onClose }: MovieDetailModalProps) {
     const isLoggedIn = useAuthStore((s: any) => s.isLoggedIn)
-    const { updateMovie, fetchMovieDetails } = useMovieStore()
+    const { updateMovie, fetchMovieDetails, directorById, genreById, countryById } = useMovieStore()
     const [isEditing, setIsEditing] = useState(false)
     const [omdbData, setOmdbData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
@@ -182,8 +182,8 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                     </Box>
                                 ) : (
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                        {movie.genres.map(g => (
-                                            <Chip key={g} label={g} size="small" variant="outlined" />
+                                        {movie.genres.map(gId => (
+                                            <Chip key={gId} label={genreById[gId] || String(gId)} size="small" variant="outlined" />
                                         ))}
                                     </Box>
                                 )}
@@ -200,10 +200,10 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                                 mb: 3
                             }}>
                                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="Director/es" value={omdbData?.director || movie.directors.join(', ')} />
+                                    <DetailItem label="Director/es" value={omdbData?.director || movie.directors.map(dId => directorById[dId] || String(dId)).join(', ')} />
                                 </Box>
                                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1' } }}>
-                                    <DetailItem label="País/es" value={omdbData?.country || movie.countries.join(', ')} />
+                                    <DetailItem label="País/es" value={omdbData?.country || movie.countries.map(cId => countryById[cId] || String(cId)).join(', ')} />
                                 </Box>
                             </Box>
 

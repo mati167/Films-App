@@ -131,7 +131,7 @@ export default function CountriesListPage() {
                                 <TableRow
                                     key={country.name}
                                     hover
-                                    onClick={() => navigate(`/country/${encodeURIComponent(country.name)}`)}
+                                    onClick={() => navigate(`/country/${country.id}`)}
                                     sx={{ cursor: 'pointer' }}
                                 >
                                     <TableCell align="center">

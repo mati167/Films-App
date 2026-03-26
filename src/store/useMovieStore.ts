@@ -4,11 +4,13 @@ import { API_BASE_URL } from '../config'
 
 export interface DirectorMetadata {
   country?: string
+  countryISO?: string
   totalFilm?: number
 }
 
 export interface CountryMetadata {
   continent?: string
+  isoCode?: string
   totalFilm?: number
   totalPerson?: number
 }
@@ -29,6 +31,7 @@ interface MovieStore {
   directorById: Record<number, string>
   genreById: Record<number, string>
   countryById: Record<number, string>
+  countryISOById: Record<number, string>
   directorMetadata: Record<string, DirectorMetadata>
   countryMetadata: Record<string, CountryMetadata>
   genreMetadata: Record<string, GenreMetadata>
@@ -74,6 +77,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
   directorById: {},
   genreById: {},
   countryById: {},
+  countryISOById: {},
   directorMetadata: {},
   countryMetadata: {},
   genreMetadata: {},
@@ -130,6 +134,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       const countries: string[] = []
       const countryIds: Record<string, number> = {}
       const countryById: Record<number, string> = {}
+      const countryISOById: Record<number, string> = {}
       const countryMetadata: Record<string, CountryMetadata> = {}
 
       if (Array.isArray(countriesData)) {
@@ -138,11 +143,14 @@ const useMovieStore = create<MovieStore>((set, get) => ({
           if (rawName) {
             const name = decodeUTF8(rawName)
             const id: number = c.idcountry || c.id || 0
+            const iso = c.isoCode || ''
             countries.push(name)
             countryIds[name] = id
             countryById[id] = name
+            countryISOById[id] = iso
             countryMetadata[name] = {
               continent: decodeUTF8(c.continent?.description || c.continentName || ''),
+              isoCode: iso,
               totalFilm: c.totalFilm || 0,
               totalPerson: c.totalPerson || 0
             }
@@ -173,6 +181,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
           directorById[id] = fullNameSorted
           directorMetadata[fullNameSorted] = {
             country: decodeUTF8(d.countries?.[0]?.description || ''),
+            countryISO: d.countries?.[0]?.isoCode || '',
             totalFilm: d.totalFilm || 0
           }
         })
@@ -198,8 +207,6 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       }
 
       // ── Películas ─────────────────────────────────────────────────────────────
-      // We build a temporary name→id map for countries to resolve film countries by ID
-      const tempCountryIdByName: Record<string, number> = countryIds
 
       const mappedMovies: Movie[] = Array.isArray(moviesData)
         ? moviesData.map((m: any) => {
@@ -269,6 +276,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
         countries: Array.from(new Set(countries)).sort(),
         countryIds,
         countryById,
+        countryISOById,
         directors: Array.from(new Set(directors)).sort(),
         directorIds,
         directorById,

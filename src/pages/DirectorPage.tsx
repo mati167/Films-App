@@ -7,7 +7,7 @@ import VideocamIcon from '@mui/icons-material/Videocam'
 import useMovieStore from '@/store/useMovieStore'
 import MovieTable from '@/components/MovieTable'
 import MovieSearch from '@/components/MovieSearch'
-import { getCountryFlag } from '@/utils/countryFlags'
+import { getCountryFlagUrl } from '@/utils/countryFlags'
 
 export default function DirectorPage() {
   const { id } = useParams<{ id: string }>()
@@ -20,7 +20,9 @@ export default function DirectorPage() {
   const movies = useMovieStore((s) => s.movies)
 
   const directorName = directorById[numId]
-  const origin = directorName ? directorMetadata[directorName]?.country : null
+  const metadata = directorName ? directorMetadata[directorName] : null
+  const origin = metadata?.country
+  const countryISO = metadata?.countryISO
 
   const directorMoviesTotal = useMemo(() => {
     return movies.filter(m => m.directors.includes(numId)).length
@@ -59,7 +61,14 @@ export default function DirectorPage() {
               </Typography>
               {origin && (
                 <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  • {getCountryFlag(origin)} {origin}
+                  • {countryISO && (
+                    <Box
+                      component="img"
+                      src={getCountryFlagUrl(countryISO)}
+                      alt={origin}
+                      sx={{ width: 16, height: 'auto', borderRadius: '2px', mr: 0.5 }}
+                    />
+                  )} {origin}
                 </Typography>
               )}
             </Box>

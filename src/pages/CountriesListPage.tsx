@@ -48,7 +48,8 @@ export default function CountriesListPage() {
                 name: name,
                 movieCount: metadata?.totalFilm || 0,
                 directorCount: metadata?.totalPerson || 0,
-                continent: metadata?.continent
+                continent: metadata?.continent,
+                isoCode: metadata?.isoCode
             }
         })
 
@@ -149,10 +150,10 @@ export default function CountriesListPage() {
                                         )}
                                     </TableCell>
                                     <TableCell align="center">
-                                        {getCountryFlagUrl(country.name) ? (
+                                        {country.isoCode ? (
                                             <Box
                                                 component="img"
-                                                src={getCountryFlagUrl(country.name)}
+                                                src={getCountryFlagUrl(country.isoCode)}
                                                 alt={country.name}
                                                 sx={{
                                                     width: 30,

@@ -47,7 +47,8 @@ export default function DirectorsListPage() {
                 id: directorIds[name] || 0,
                 name: name,
                 movieCount: metadata?.totalFilm || 0,
-                nationality: metadata?.country
+                nationality: metadata?.country,
+                countryISO: metadata?.countryISO
             }
         })
 
@@ -129,11 +130,11 @@ export default function DirectorsListPage() {
                                     </TableCell>
                                     <TableCell sx={{ fontWeight: 600 }}>{director.name}</TableCell>
                                     <TableCell>
-                                        {director.nationality && (
-                                            <Tooltip title={director.nationality} arrow>
+                                        {director.countryISO && (
+                                            <Tooltip title={director.nationality || ''} arrow>
                                                 <Box
                                                     component="img"
-                                                    src={getCountryFlagUrl(director.nationality)}
+                                                    src={getCountryFlagUrl(director.countryISO)}
                                                     alt={director.nationality}
                                                     sx={{
                                                         width: 28,

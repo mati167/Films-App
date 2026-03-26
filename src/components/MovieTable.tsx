@@ -31,6 +31,7 @@ export default function MovieTable({ movies }: MovieTableProps) {
   const directorById = useMovieStore((s) => s.directorById)
   const genreById = useMovieStore((s) => s.genreById)
   const countryById = useMovieStore((s) => s.countryById)
+  const countryISOById = useMovieStore((s) => s.countryISOById)
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -233,29 +234,30 @@ export default function MovieTable({ movies }: MovieTableProps) {
                   {[
                     ...(movie.displayCountryId ? [movie.displayCountryId] : []),
                     ...movie.countries.filter((c) => c !== movie.displayCountryId),
-                  ].map((cId) => {
-                    const countryName = countryById[cId] || String(cId)
-                    return (
-                      <Tooltip key={cId} title={countryName} arrow>
-                        <Box component="span">
-                          <ChipLink
-                            label=""
-                            to={`/country/${cId}`}
-                            sx={{
-                              p: 0,
-                              minWidth: 32,
-                              height: 22,
-                              backgroundImage: `url(${getCountryFlagUrl(countryName)})`,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                              borderRadius: '4px',
-                              border: '1px solid rgba(255,255,255,0.1)'
-                            }}
-                          />
-                        </Box>
-                      </Tooltip>
-                    )
-                  })}
+                    ].map((cId) => {
+                      const countryName = countryById[cId] || String(cId)
+                      const iso = countryISOById[cId] || ''
+                      return (
+                        <Tooltip key={cId} title={countryName} arrow>
+                          <Box component="span">
+                            <ChipLink
+                              label=""
+                              to={`/country/${cId}`}
+                              sx={{
+                                p: 0,
+                                minWidth: 32,
+                                height: 22,
+                                backgroundImage: `url(${getCountryFlagUrl(iso)})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                              }}
+                            />
+                          </Box>
+                        </Tooltip>
+                      )
+                    })}
                 </Box>
               </TableCell>
               <TableCell>

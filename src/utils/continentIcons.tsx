@@ -1,20 +1,59 @@
-import PublicIcon from '@mui/icons-material/Public'
-import LanguageIcon from '@mui/icons-material/Language'
-import ExploreIcon from '@mui/icons-material/Explore'
-import MapIcon from '@mui/icons-material/Map'
-import TerrainIcon from '@mui/icons-material/Terrain'
+import Continents from "@react-map/continents";
 
-export const continentIcons: Record<string, React.ReactNode> = {
-    'America': <PublicIcon />,
-    'Europa': <LanguageIcon />,
-    'Asia': <TerrainIcon />,
-    'Africa': <ExploreIcon />,
-    'Oceania': <MapIcon />,
+// Map of our API continent names to @react-map/continents keys
+const continentToKey: Record<string, string> = {
+    'Africa': 'Africa',
+    'Asia': 'Asia',
+    'Europa': 'Europe',
+    'Europe': 'Europe',
+    'America': 'Latin America',
+    'America del Norte': 'North America',
+    'America del Sud': 'Latin America',
+    'Sudamerica': 'Latin America',
+    'Oceania': 'Australia and Oceania',
+};
+
+interface ContinentShapeProps {
+    continent: string;
+    size?: number;
+    color?: string;
 }
 
-// Map of continent to simple SVG shape paths (conceptual)
-export const ContinentShape = ({ continent, size = 24 }: { continent: string, size?: number }) => {
-    // We use different icons to represent them for now as specifically shaped continent icons 
-    // are not available in standard MUI. 
-    return continentIcons[continent] || <PublicIcon />
-}
+export const ContinentShape = ({ continent, size = 24, color = '#E50914' }: ContinentShapeProps) => {
+    const key = continentToKey[continent];
+
+    if (!key) {
+        return (
+            <div style={{ 
+                width: size, 
+                height: size, 
+                borderRadius: '50%', 
+                border: '2px solid rgba(255,255,255,0.2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: size * 0.5,
+                color: 'rgba(255,255,255,0.5)'
+            }}>
+                ?
+            </div>
+        );
+    }
+
+    // Note: Continents component does not take a 'selectedState' prop.
+    // We use 'cityColors' to highlight the specific continent.
+    return (
+        <div style={{ display: 'inline-block', verticalAlign: 'middle', width: size, height: size }}>
+            <Continents
+                type="select-single"
+                size={size}
+                mapColor="rgba(255,255,255,0.1)"
+                strokeColor="rgba(255,255,255,0.3)"
+                strokeWidth={0.5}
+                cityColors={{ [key]: color }}
+                disableClick={true}
+                disableHover={true}
+            />
+        </div>
+    );
+};

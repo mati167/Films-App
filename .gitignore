@@ -1,10 +1,39 @@
-# v0 runtime files
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-
-# Common ignores
+# Dependencias
 node_modules/
-.next/
-.env*.local
+.pnp
+.pnp.js
+
+# Producción / Build
+dist/
+build/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Variables de entorno (Seguridad)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor (VS Code / JetBrains)
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Sistema
 .DS_Store
+Thumbs.db

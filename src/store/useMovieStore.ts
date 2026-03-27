@@ -315,10 +315,12 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
   addMovie: async (movie) => {
     try {
-      // Convert duration "HH:MM" → "HH:MM:00.000Z" (TimeSpan-compatible)
+      // Ensure duration is HH:MM:SS — append :00 if only HH:MM was entered
       const durationForApi = movie.duration
-        ? `${movie.duration}:00.000Z`
-        : '00:00:00.000Z'
+        ? movie.duration.split(':').length === 2
+          ? `${movie.duration}:00`
+          : movie.duration
+        : '00:00:00'
 
       const payload = {
         filmName: movie.name,

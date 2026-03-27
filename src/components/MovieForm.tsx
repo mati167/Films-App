@@ -26,7 +26,7 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
         name: initialData?.name || '',
         year: initialData?.year || new Date().getFullYear(),
         directors: initialData?.directors || [],
-        duration: initialData?.duration || '02:00',
+        duration: initialData?.duration || '00:00:00',
         countries: initialData?.countries || [],
         genres: initialData?.genres || [],
         imdbUrl: initialData?.imdbUrl || '',
@@ -64,13 +64,13 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
                         required
                     />
                     <TextField
-                        label="Duración (HH:MM)"
+                        label="Duración (HH:MM:SS)"
                         value={formData.duration}
                         onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                         fullWidth
                         required
-                        placeholder="00:00"
-                        helperText="Formato HH:MM"
+                        placeholder="01:53:00"
+                        helperText="Formato HH:MM:SS"
                     />
                 </Box>
 

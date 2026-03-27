@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config'
 export interface DirectorMetadata {
   country?: string
   countryISO?: string
+  countries?: { name: string; iso: string }[]
   totalFilm?: number
 }
 
@@ -182,6 +183,12 @@ const useMovieStore = create<MovieStore>((set, get) => ({
           directorMetadata[fullNameSorted] = {
             country: decodeUTF8(d.countries?.[0]?.description || ''),
             countryISO: d.countries?.[0]?.isoCode || '',
+            countries: Array.isArray(d.countries)
+              ? d.countries.map((c: any) => ({
+                  name: decodeUTF8(c.description || ''),
+                  iso: c.isoCode || ''
+                }))
+              : [],
             totalFilm: d.totalFilm || 0
           }
         })

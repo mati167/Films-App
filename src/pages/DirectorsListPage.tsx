@@ -15,10 +15,9 @@ import { useNavigate } from 'react-router-dom'
 import { getCountryFlagUrl } from '@/utils/countryFlags'
 import Tooltip from '@mui/material/Tooltip'
 import LoadingIndicator from '@/components/LoadingIndicator'
-
 import TableSortLabel from '@mui/material/TableSortLabel'
 
-type SortKey = 'name' | 'movieCount' | 'countries'
+type SortKey = 'name' | 'movieCount'
 type SortDirection = 'asc' | 'desc'
 
 export default function DirectorsListPage() {
@@ -43,12 +42,17 @@ export default function DirectorsListPage() {
     const directorsList = useMemo(() => {
         const list = directors.map((name) => {
             const metadata = directorMetadata[name]
+            // Use the new all-countries array, fall back to single entry for backward compat
+            const countries = metadata?.countries?.length
+                ? metadata.countries
+                : metadata?.countryISO
+                    ? [{ name: metadata.country || '', iso: metadata.countryISO }]
+                    : []
             return {
                 id: directorIds[name] || 0,
-                name: name,
+                name,
                 movieCount: metadata?.totalFilm || 0,
-                nationality: metadata?.country,
-                countryISO: metadata?.countryISO
+                countries,
             }
         })
 
@@ -61,14 +65,8 @@ export default function DirectorsListPage() {
 
         return filtered.sort((a, b) => {
             let comparison = 0
-            switch (sortKey) {
-                case 'name':
-                    comparison = a.name.localeCompare(b.name)
-                    break
-                case 'movieCount':
-                    comparison = a.movieCount - b.movieCount
-                    break
-            }
+            if (sortKey === 'name') comparison = a.name.localeCompare(b.name)
+            else if (sortKey === 'movieCount') comparison = a.movieCount - b.movieCount
             return sortDirection === 'asc' ? comparison : -comparison
         })
     }, [directors, searchTerm, sortKey, sortDirection, directorIds, directorMetadata])
@@ -130,22 +128,25 @@ export default function DirectorsListPage() {
                                     </TableCell>
                                     <TableCell sx={{ fontWeight: 600 }}>{director.name}</TableCell>
                                     <TableCell>
-                                        {director.countryISO && (
-                                            <Tooltip title={director.nationality || ''} arrow>
-                                                <Box
-                                                    component="img"
-                                                    src={getCountryFlagUrl(director.countryISO)}
-                                                    alt={director.nationality}
-                                                    sx={{
-                                                        width: 28,
-                                                        height: 'auto',
-                                                        borderRadius: '3px',
-                                                        display: 'block',
-                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                                                    }}
-                                                />
-                                            </Tooltip>
-                                        )}
+                                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                            {director.countries.map((c) =>
+                                                c.iso ? (
+                                                    <Tooltip key={c.iso} title={c.name} arrow>
+                                                        <Box
+                                                            component="img"
+                                                            src={getCountryFlagUrl(c.iso)}
+                                                            alt={c.name}
+                                                            sx={{
+                                                                width: 28,
+                                                                height: 'auto',
+                                                                borderRadius: '3px',
+                                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                            }}
+                                                        />
+                                                    </Tooltip>
+                                                ) : null
+                                            )}
+                                        </Box>
                                     </TableCell>
                                     <TableCell align="center">{director.movieCount}</TableCell>
                                 </TableRow>

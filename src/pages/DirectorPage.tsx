@@ -21,8 +21,12 @@ export default function DirectorPage() {
 
   const directorName = directorById[numId]
   const metadata = directorName ? directorMetadata[directorName] : null
-  const origin = metadata?.country
-  const countryISO = metadata?.countryISO
+  // All countries, falling back to single entry if new field not yet populated
+  const allCountries = metadata?.countries?.length
+    ? metadata.countries
+    : metadata?.countryISO
+      ? [{ name: metadata.country || '', iso: metadata.countryISO }]
+      : []
 
   const directorMoviesTotal = useMemo(() => {
     return movies.filter(m => m.directors.includes(numId)).length
@@ -59,17 +63,23 @@ export default function DirectorPage() {
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Peliculas dirigidas por
               </Typography>
-              {origin && (
-                <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  • {countryISO && (
-                    <Box
-                      component="img"
-                      src={getCountryFlagUrl(countryISO)}
-                      alt={origin}
-                      sx={{ width: 16, height: 'auto', borderRadius: '2px', mr: 0.5 }}
-                    />
-                  )} {origin}
-                </Typography>
+              {allCountries.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>•</Typography>
+                  {allCountries.map((c) => (
+                    <Box key={c.iso || c.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                      {c.iso && (
+                        <Box
+                          component="img"
+                          src={getCountryFlagUrl(c.iso)}
+                          alt={c.name}
+                          sx={{ width: 16, height: 'auto', borderRadius: '2px' }}
+                        />
+                      )}
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{c.name}</Typography>
+                    </Box>
+                  ))}
+                </Box>
               )}
             </Box>
             <Typography variant="h4" sx={{ color: 'text.primary' }}>

@@ -99,7 +99,6 @@ export default function Header() {
           ))}
 
           <Box sx={{ ml: 2, display: 'flex', gap: 1 }}>
-            {/* 
             {isLoggedIn ? (
               <>
                 <Button
@@ -123,10 +122,9 @@ export default function Header() {
                 startIcon={<LoginIcon />}
                 onClick={() => navigate('/login')}
               >
-                Login (Admin)
+                Login
               </Button>
             )}
-            */}
           </Box>
         </Box>
       </Toolbar>

@@ -22,6 +22,8 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Autocomplete from '@mui/material/Autocomplete'
 import Chip from '@mui/material/Chip'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 import useMovieStore from '@/store/useMovieStore'
 import type { Movie } from '@/types/movie'
 import { ContinentShape } from '@/utils/continentIcons'
@@ -41,6 +43,7 @@ export default function AdminPage() {
     } = useMovieStore()
 
     const [tab, setTab] = useState(0)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
     // Movie Sorting States
     const [movieSortKey, setMovieSortKey] = useState<string>('name')
@@ -130,30 +133,39 @@ export default function AdminPage() {
         setEntityOpen(true)
     }
 
-    const handleMovieSubmit = (formData: Omit<Movie, 'id'>) => {
-        if (editingMovie) updateMovie(editingMovie.id, formData)
-        else addMovie(formData)
-        setMovieOpen(false)
+    const handleMovieSubmit = async (formData: Omit<Movie, 'id'>) => {
+        try {
+            if (editingMovie) updateMovie(editingMovie.id, formData)
+            else await addMovie(formData)
+            setMovieOpen(false)
+        } catch (err: any) {
+            setErrorMsg(err?.message || 'Error al guardar la película')
+        }
     }
 
-    const handleEntitySubmit = (e: React.FormEvent) => {
+    const handleEntitySubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         let finalValue = entityValue
         if (tab === 1) {
-            finalValue = `${firstName} ${lastName}`.trim()
+            finalValue = `${lastName}, ${firstName}`.trim()
         }
 
-        if (tab === 1) { // Directors
-            if (editingEntity) updateDirector(editingEntity, finalValue, { country: selectedCountry })
-            else addDirector(finalValue, { country: selectedCountry })
-        } else if (tab === 2) { // Genres
-            if (editingEntity) updateGenre(editingEntity, finalValue)
-            else addGenre(entityValue)
-        } else if (tab === 3) { // Countries
-            if (editingEntity) updateCountry(editingEntity, finalValue, { continent: selectedContinent })
-            else addCountry(finalValue, { continent: selectedContinent })
+        try {
+            if (tab === 1) { // Directors
+                const countryId = countryIds[selectedCountry] || 0
+                if (editingEntity) updateDirector(editingEntity, finalValue, { country: selectedCountry })
+                else await addDirector(finalValue, { country: selectedCountry }, countryId)
+            } else if (tab === 2) { // Genres
+                if (editingEntity) updateGenre(editingEntity, finalValue)
+                else addGenre(entityValue)
+            } else if (tab === 3) { // Countries
+                if (editingEntity) updateCountry(editingEntity, finalValue, { continent: selectedContinent })
+                else addCountry(finalValue, { continent: selectedContinent })
+            }
+            setEntityOpen(false)
+        } catch (err: any) {
+            setErrorMsg(err?.message || 'Error al guardar el director')
         }
-        setEntityOpen(false)
     }
 
     return (
@@ -350,6 +362,17 @@ export default function AdminPage() {
                     </DialogActions>
                 </form>
             </Dialog>
+
+            <Snackbar
+                open={!!errorMsg}
+                autoHideDuration={5000}
+                onClose={() => setErrorMsg(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ width: '100%' }}>
+                    {errorMsg}
+                </Alert>
+            </Snackbar>
         </Box>
     )
 }

@@ -23,9 +23,10 @@ export default function LoginPage() {
         return () => clearError()
     }, [isLoggedIn, navigate, clearError])
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (login(username, password)) {
+        const success = await login(username, password)
+        if (success) {
             navigate('/admin')
         }
     }
@@ -97,17 +98,7 @@ export default function LoginPage() {
                     </Button>
                 </form>
 
-                <Box sx={{ mt: 2, p: 2, width: '100%', bgcolor: 'action.hover', borderRadius: 2 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1 }}>
-                        ACCESO DE PRUEBA:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        Usuario: <strong>admin</strong>
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        Contraseña: <strong>admin123</strong>
-                    </Typography>
-                </Box>
+
             </Paper>
         </Box>
     )

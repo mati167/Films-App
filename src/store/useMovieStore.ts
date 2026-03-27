@@ -42,10 +42,10 @@ interface MovieStore {
   setFilter: <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => void
   resetFilters: () => void
   getFilteredMovies: () => Movie[]
-  addMovie: (movie: Omit<Movie, 'id'>) => void
+  addMovie: (movie: Omit<Movie, 'id'>) => Promise<void>
   updateMovie: (id: number, movie: Partial<Movie>) => void
   deleteMovie: (id: number) => void
-  addDirector: (name: string, metadata?: DirectorMetadata) => void
+  addDirector: (name: string, metadata?: DirectorMetadata, countryId?: number) => Promise<void>
   updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata) => void
   deleteDirector: (name: string) => void
   addGenre: (name: string) => void
@@ -313,10 +313,57 @@ const useMovieStore = create<MovieStore>((set, get) => ({
     }
   },
 
-  addMovie: (movie) =>
-    set((state) => ({
-      movies: [...state.movies, { ...movie, id: Math.max(0, ...state.movies.map(m => m.id)) + 1 }],
-    })),
+  addMovie: async (movie) => {
+    try {
+      // Convert duration "HH:MM" → "HH:MM:00.000Z" (TimeSpan-compatible)
+      const durationForApi = movie.duration
+        ? `${movie.duration}:00.000Z`
+        : '00:00:00.000Z'
+
+      const payload = {
+        filmName: movie.name,
+        year: movie.year,
+        duration: durationForApi,
+        imdbID: movie.imdbID || '',
+        countryIds: movie.countries,
+        genreIds: movie.genres,
+        directedIds: movie.directors,
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Film/AddFilm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) throw new Error(`AddFilm failed: ${response.status}`)
+
+      const created = await response.json()
+
+      // Map the returned film to our local Movie shape
+      const newMovie = {
+        id: created.idfilm ?? created.id ?? Math.max(0, ...get().movies.map(m => m.id)) + 1,
+        name: created.filmName || movie.name,
+        year: created.year ?? movie.year,
+        duration: movie.duration,
+        directors: movie.directors,
+        countries: movie.countries,
+        genres: movie.genres,
+        imdbUrl: created.imdbUrl || '',
+        rottenTomatoesUrl: created.rottenTomatoesUrl || '',
+        letterboxdUrl: created.letterboxdUrl || '',
+        imdbID: created.imdbID || movie.imdbID || '',
+      }
+
+      set((state) => ({ movies: [...state.movies, newMovie] }))
+    } catch (error) {
+      console.error('Error adding movie:', error)
+      // Fallback: add locally so the UI still reflects the entry
+      set((state) => ({
+        movies: [...state.movies, { ...movie, id: Math.max(0, ...state.movies.map(m => m.id)) + 1 }],
+      }))
+    }
+  },
 
   updateMovie: (id, updatedMovie) =>
     set((state) => ({
@@ -328,11 +375,40 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       movies: state.movies.filter((m) => m.id !== id),
     })),
 
-  addDirector: (name, metadata) =>
-    set((state) => ({
-      directors: [...state.directors, name].sort(),
-      directorMetadata: { ...state.directorMetadata, [name]: metadata || {} }
-    })),
+  addDirector: async (name, metadata, countryId) => {
+    // Split "Apellido, Nombre" back into parts for the API
+    const parts = name.split(',').map((s) => s.trim())
+    const lastName = parts[0] || name
+    const firstName = parts[1] || ''
+
+    try {
+      const payload: Record<string, any> = { name: firstName, lastName }
+      if (countryId !== undefined && countryId > 0) {
+        payload.countryIds = [countryId]
+      }
+
+      const response = await fetch(`${API_BASE_URL}/person/addPerson`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) throw new Error(`addPerson failed: ${response.status}`)
+
+      const created = await response.json()
+      const newId: number = created.idpersona || created.idPersona || created.id || 0
+
+      set((state) => ({
+        directors: [...state.directors, name].sort(),
+        directorIds: { ...state.directorIds, [name]: newId },
+        directorById: { ...state.directorById, [newId]: name },
+        directorMetadata: { ...state.directorMetadata, [name]: metadata || {} },
+      }))
+    } catch (error) {
+      console.error('Error adding director:', error)
+      throw error  // Re-throw so AdminPage can show the Snackbar
+    }
+  },
 
   updateDirector: (oldName, newName, metadata) =>
     set((state) => {

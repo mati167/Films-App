@@ -36,11 +36,11 @@ export default function App() {
             <Route path="/director/:id" element={<DirectorPage />} />
             <Route path="/genres" element={<GenresListPage />} />
             <Route path="/genre/:id" element={<GenrePage />} />
-            {/* <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route
               path="/admin"
               element={isLoggedIn ? <AdminPage /> : <Navigate to="/login" />}
-            /> */}
+            />
           </Route>
         </Routes>
       </BrowserRouter>

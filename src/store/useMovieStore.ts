@@ -367,10 +367,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       set((state) => ({ movies: [...state.movies, newMovie] }))
     } catch (error) {
       console.error('Error adding movie:', error)
-      // Fallback: add locally so the UI still reflects the entry
-      set((state) => ({
-        movies: [...state.movies, { ...movie, id: Math.max(0, ...state.movies.map(m => m.id)) + 1 }],
-      }))
+      throw error
     }
   },
 

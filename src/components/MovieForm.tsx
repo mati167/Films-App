@@ -6,6 +6,7 @@ import Autocomplete from '@mui/material/Autocomplete'
 import Chip from '@mui/material/Chip'
 import useMovieStore from '@/store/useMovieStore'
 import type { Movie } from '@/types/movie'
+import DurationInput from '@/components/DurationInput'
 
 interface MovieFormProps {
     initialData?: Partial<Movie>
@@ -63,15 +64,12 @@ export default function MovieForm({ initialData, onSubmit, onCancel, submitLabel
                         fullWidth
                         required
                     />
-                    <TextField
-                        label="Duración (HH:MM:SS)"
-                        value={formData.duration}
-                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                        fullWidth
-                        required
-                        placeholder="01:53:00"
-                        helperText="Formato HH:MM:SS"
-                    />
+                <DurationInput
+                    value={formData.duration}
+                    onChange={(v) => setFormData({ ...formData, duration: v })}
+                    label="Duración"
+                    required
+                />
                 </Box>
 
                 <Autocomplete

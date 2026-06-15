@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
+import Paper from '@mui/material/Paper'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Tabs from '@mui/material/Tabs'
@@ -11,7 +21,6 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
-import Paper from '@mui/material/Paper'
 import PublicIcon from '@mui/icons-material/Public'
 import VideocamIcon from '@mui/icons-material/Videocam'
 import useMovieStore from '@/store/useMovieStore'
@@ -38,6 +47,9 @@ export default function CountryPage() {
   const directorIds = useMovieStore((s) => s.directorIds)
 
   const [tab, setTab] = useState(0)
+  const [directorSearch, setDirectorSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'movies'>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const countryName = countryById[numId]
   const continent = countryName ? countryMetadata[countryName]?.continent : undefined
@@ -60,6 +72,18 @@ export default function CountryPage() {
       })
       .filter(Boolean) as { id: number; name: string; movieCount: number }[]
   }, [directors, directorMetadata, directorIds, countryName])
+
+  const filteredDirectors = useMemo(() => {
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const searched = directorSearch
+      ? countryDirectors.filter((d) => norm(d.name).includes(norm(directorSearch)))
+      : countryDirectors
+    return [...searched].sort((a, b) => {
+      const mul = sortDir === 'asc' ? 1 : -1
+      if (sortBy === 'name') return mul * a.name.localeCompare(b.name)
+      return mul * (a.movieCount - b.movieCount)
+    })
+  }, [countryDirectors, directorSearch, sortBy, sortDir])
 
   if (!countryName) {
     return (
@@ -140,48 +164,108 @@ export default function CountryPage() {
       )}
 
       {tab === 1 && (
-        <TableContainer component={Paper} elevation={0}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700 }}>Películas</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {countryDirectors.length === 0 ? (
+        <>
+          {/* Search & Sort bar */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              mb: 3,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Buscar director..."
+                value={directorSearch}
+                onChange={(e) => setDirectorSearch(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: directorSearch && (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setDirectorSearch('')}>
+                          <ClearIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <ToggleButtonGroup
+                value={sortBy}
+                exclusive
+                onChange={(_, v) => v && setSortBy(v)}
+                size="small"
+                sx={{ flexShrink: 0 }}
+              >
+                <ToggleButton value="name" sx={{ px: 2, fontSize: 12, fontWeight: 600 }}>Nombre</ToggleButton>
+                <ToggleButton value="movies" sx={{ px: 2, fontSize: 12, fontWeight: 600 }}>Películas</ToggleButton>
+              </ToggleButtonGroup>
+              <IconButton
+                size="small"
+                onClick={() => setSortDir((d) => d === 'asc' ? 'desc' : 'asc')}
+                sx={{ color: 'text.secondary', flexShrink: 0 }}
+              >
+                {sortDir === 'asc'
+                  ? <ArrowUpwardIcon sx={{ fontSize: 18 }} />
+                  : <ArrowDownwardIcon sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </Box>
+          </Paper>
+
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                    Sin directores asociados
-                  </TableCell>
+                  <TableCell align="center" sx={{ width: 60, fontWeight: 700 }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Películas</TableCell>
                 </TableRow>
-              ) : (
-                countryDirectors.map((d) => (
-                  <TableRow
-                    key={d.id}
-                    hover
-                    onClick={() => navigate(`/director/${d.id}`)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    <TableCell align="center">
-                      <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                        {d.id}
-                      </Typography>
+              </TableHead>
+              <TableBody>
+                {filteredDirectors.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      {directorSearch ? 'Sin resultados para esa búsqueda' : 'Sin directores asociados'}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <VideocamIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                        {d.name}
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">{d.movieCount}</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  filteredDirectors.map((d) => (
+                    <TableRow
+                      key={d.id}
+                      hover
+                      onClick={() => navigate(`/director/${d.id}`)}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      <TableCell align="center">
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                          {d.id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <VideocamIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {d.name}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="center">{d.movieCount}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
       )}
     </Box>
   )

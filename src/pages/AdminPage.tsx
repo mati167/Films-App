@@ -4,6 +4,10 @@ import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
@@ -14,7 +18,6 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
-import IconButton from '@mui/material/IconButton'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
@@ -45,6 +48,10 @@ export default function AdminPage() {
     const [tab, setTab] = useState(0)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+    // Search States
+    const [movieSearch, setMovieSearch] = useState('')
+    const [entitySearch, setEntitySearch] = useState('')
+
     // Movie Sorting States
     const [movieSortKey, setMovieSortKey] = useState<string>('name')
     const [movieSortDir, setMovieSortDir] = useState<'asc' | 'desc'>('asc')
@@ -68,8 +75,16 @@ export default function AdminPage() {
 
     const continents = ['America', 'Europa', 'Asia', 'Africa', 'Oceania']
 
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
     const sortedMovies = useMemo(() => {
-        return [...movies].sort((a, b) => {
+        const filtered = movieSearch
+            ? movies.filter((m) => {
+                const dirNames = m.directors.map(id => directorById[id] || '').join(' ')
+                return norm(m.name).includes(norm(movieSearch)) || norm(dirNames).includes(norm(movieSearch))
+              })
+            : movies
+        return [...filtered].sort((a, b) => {
             let comp = 0
             if (movieSortKey === 'name') comp = a.name.localeCompare(b.name)
             else if (movieSortKey === 'year') comp = a.year - b.year
@@ -78,10 +93,9 @@ export default function AdminPage() {
                 const nameB = directorById[b.directors[0]] || ''
                 comp = nameA.localeCompare(nameB)
             }
-
             return movieSortDir === 'asc' ? comp : -comp
         })
-    }, [movies, movieSortKey, movieSortDir])
+    }, [movies, movieSortKey, movieSortDir, movieSearch, directorById])
 
     const handleMovieSort = (key: string) => {
         if (movieSortKey === key) setMovieSortDir(movieSortDir === 'asc' ? 'desc' : 'asc')
@@ -90,11 +104,14 @@ export default function AdminPage() {
 
     const currentEntities = useMemo(() => {
         const list = tab === 1 ? directors : tab === 2 ? genres : countries
-        return [...list].sort((a, b) => {
+        const filtered = entitySearch
+            ? list.filter((item) => norm(item).includes(norm(entitySearch)))
+            : list
+        return [...filtered].sort((a, b) => {
             const comp = a.localeCompare(b)
             return entitySortDir === 'asc' ? comp : -comp
         })
-    }, [tab, directors, genres, countries, entitySortDir])
+    }, [tab, directors, genres, countries, entitySortDir, entitySearch])
 
     const handleMovieOpen = (movie?: Movie) => {
         if (movie) {
@@ -109,11 +126,11 @@ export default function AdminPage() {
         if (value) {
             setEditingEntity(value)
             setEntityValue(value)
-            if (tab === 1) { // Director split
-                const parts = value.split(' ')
-                if (parts.length > 1) {
-                    setLastName(parts.pop() || '')
-                    setFirstName(parts.join(' '))
+            if (tab === 1) { // Director split — format is "Apellido, Nombre"
+                const commaIdx = value.indexOf(', ')
+                if (commaIdx !== -1) {
+                    setLastName(value.substring(0, commaIdx))
+                    setFirstName(value.substring(commaIdx + 2))
                 } else {
                     setFirstName(value)
                     setLastName('')
@@ -135,7 +152,7 @@ export default function AdminPage() {
 
     const handleMovieSubmit = async (formData: Omit<Movie, 'id'>) => {
         try {
-            if (editingMovie) updateMovie(editingMovie.id, formData)
+            if (editingMovie) await updateMovie(editingMovie.id, formData)
             else await addMovie(formData)
             setMovieOpen(false)
         } catch (err: any) {
@@ -153,7 +170,7 @@ export default function AdminPage() {
         try {
             if (tab === 1) { // Directors
                 const countryId = countryIds[selectedCountry] || 0
-                if (editingEntity) updateDirector(editingEntity, finalValue, { country: selectedCountry })
+                if (editingEntity) await updateDirector(editingEntity, finalValue, { country: selectedCountry })
                 else await addDirector(finalValue, { country: selectedCountry }, countryId)
             } else if (tab === 2) { // Genres
                 if (editingEntity) updateGenre(editingEntity, finalValue)
@@ -172,7 +189,7 @@ export default function AdminPage() {
         <Box>
             <Typography variant="h4" sx={{ mb: 4 }}>Administración</Typography>
 
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={tab} onChange={(_, v) => { setTab(v); setMovieSearch(''); setEntitySearch('') }} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
                 <Tab label="Películas" />
                 <Tab label="Directores" />
                 <Tab label="Géneros" />
@@ -182,11 +199,26 @@ export default function AdminPage() {
             {/* MOVIES TAB */}
             {tab === 0 && (
                 <>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleMovieOpen()}>
-                            Nueva Película
-                        </Button>
-                    </Box>
+                    <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                placeholder="Buscar por nombre o director..."
+                                value={movieSearch}
+                                onChange={(e) => setMovieSearch(e.target.value)}
+                                slotProps={{
+                                    input: {
+                                        startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>,
+                                        endAdornment: movieSearch && <InputAdornment position="end"><IconButton size="small" onClick={() => setMovieSearch('')}><ClearIcon sx={{ fontSize: 18 }} /></IconButton></InputAdornment>,
+                                    },
+                                }}
+                            />
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleMovieOpen()} sx={{ flexShrink: 0 }}>
+                                Nueva Película
+                            </Button>
+                        </Box>
+                    </Paper>
                     <TableContainer component={Paper} elevation={0}>
                         <Table>
                             <TableHead>
@@ -248,11 +280,26 @@ export default function AdminPage() {
             {/* ENTITIES TABS (1=Directors, 2=Genres, 3=Countries) */}
             {(tab === 1 || tab === 2 || tab === 3) && (
                 <>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleEntityOpen()}>
-                            Nuevo {tab === 1 ? 'Director' : tab === 2 ? 'Género' : 'País'}
-                        </Button>
-                    </Box>
+                    <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                placeholder={`Buscar ${tab === 1 ? 'director' : tab === 2 ? 'género' : 'país'}...`}
+                                value={entitySearch}
+                                onChange={(e) => setEntitySearch(e.target.value)}
+                                slotProps={{
+                                    input: {
+                                        startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>,
+                                        endAdornment: entitySearch && <InputAdornment position="end"><IconButton size="small" onClick={() => setEntitySearch('')}><ClearIcon sx={{ fontSize: 18 }} /></IconButton></InputAdornment>,
+                                    },
+                                }}
+                            />
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleEntityOpen()} sx={{ flexShrink: 0 }}>
+                                Nuevo {tab === 1 ? 'Director' : tab === 2 ? 'Género' : 'País'}
+                            </Button>
+                        </Box>
+                    </Paper>
                     <TableContainer component={Paper} elevation={0}>
                         <Table>
                             <TableHead>

@@ -5,37 +5,41 @@ import Typography from '@mui/material/Typography'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import HomeIcon from '@mui/icons-material/Home'
 import { useNavigate, useLocation } from 'react-router-dom'
+import useMovieStore from '@/store/useMovieStore'
 
 interface BreadcrumbItem {
   label: string
   path?: string
 }
 
-function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
-  const items: BreadcrumbItem[] = [{ label: 'Inicio', path: '/films' }]
-
-  if (pathname === '/') return items
-
-  const segments = pathname.split('/').filter(Boolean)
-
-  if (segments[0] === 'country' && segments[1]) {
-    items.push({ label: 'Pais' })
-    items.push({ label: decodeURIComponent(segments[1]) })
-  } else if (segments[0] === 'director' && segments[1]) {
-    items.push({ label: 'Director' })
-    items.push({ label: decodeURIComponent(segments[1]) })
-  } else if (segments[0] === 'genre' && segments[1]) {
-    items.push({ label: 'Genero' })
-    items.push({ label: decodeURIComponent(segments[1]) })
-  }
-
-  return items
-}
-
 export default function Navigation() {
   const navigate = useNavigate()
   const location = useLocation()
-  const breadcrumbs = getBreadcrumbs(location.pathname)
+
+  const countryById = useMovieStore((s) => s.countryById)
+  const genreById = useMovieStore((s) => s.genreById)
+  const directorById = useMovieStore((s) => s.directorById)
+
+  const segments = location.pathname.split('/').filter(Boolean)
+
+  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Inicio', path: '/films' }]
+
+  if (segments[0] === 'country' && segments[1]) {
+    const numId = Number(segments[1])
+    const name = countryById[numId] || decodeURIComponent(segments[1])
+    breadcrumbs.push({ label: 'Países', path: '/countries' })
+    breadcrumbs.push({ label: name })
+  } else if (segments[0] === 'director' && segments[1]) {
+    const numId = Number(segments[1])
+    const name = directorById[numId] || decodeURIComponent(segments[1])
+    breadcrumbs.push({ label: 'Directores', path: '/directors' })
+    breadcrumbs.push({ label: name })
+  } else if (segments[0] === 'genre' && segments[1]) {
+    const numId = Number(segments[1])
+    const name = genreById[numId] || decodeURIComponent(segments[1])
+    breadcrumbs.push({ label: 'Géneros', path: '/genres' })
+    breadcrumbs.push({ label: name })
+  }
 
   if (breadcrumbs.length <= 1) return null
 

@@ -44,10 +44,10 @@ interface MovieStore {
   resetFilters: () => void
   getFilteredMovies: () => Movie[]
   addMovie: (movie: Omit<Movie, 'id'>) => Promise<void>
-  updateMovie: (id: number, movie: Partial<Movie>) => void
+  updateMovie: (id: number, movie: Partial<Movie>) => Promise<void>
   deleteMovie: (id: number) => void
   addDirector: (name: string, metadata?: DirectorMetadata, countryId?: number) => Promise<void>
-  updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata) => void
+  updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata) => Promise<void>
   deleteDirector: (name: string) => void
   addGenre: (name: string) => void
   updateGenre: (oldName: string, newName: string) => void
@@ -371,10 +371,37 @@ const useMovieStore = create<MovieStore>((set, get) => ({
     }
   },
 
-  updateMovie: (id, updatedMovie) =>
+  updateMovie: async (id, updatedMovie) => {
+    const durationForApi = updatedMovie.duration
+      ? updatedMovie.duration.split(':').length === 2
+        ? `${updatedMovie.duration}:00`
+        : updatedMovie.duration
+      : '00:00:00'
+
+    const payload = {
+      idfilm: id,
+      filmName: updatedMovie.name,
+      year: updatedMovie.year,
+      duration: durationForApi,
+      imdbID: updatedMovie.imdbID || '',
+      countryIds: updatedMovie.countries || [],
+      genreIds: updatedMovie.genres || [],
+      directedIds: updatedMovie.directors || [],
+      actedIds: [],
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Film/updateFilm`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) throw new Error(`updateFilm failed: ${response.status}`)
+
     set((state) => ({
       movies: state.movies.map((m) => (m.id === id ? { ...m, ...updatedMovie } : m)),
-    })),
+    }))
+  },
 
   deleteMovie: (id) =>
     set((state) => ({
@@ -416,18 +443,46 @@ const useMovieStore = create<MovieStore>((set, get) => ({
     }
   },
 
-  updateDirector: (oldName, newName, metadata) =>
+  updateDirector: async (oldName, newName, metadata) => {
+    // Split "Apellido, Nombre" → lastName, firstName for the API
+    const parts = newName.split(',').map((s) => s.trim())
+    const lastName = parts[0] || newName
+    const firstName = parts[1] || ''
+
+    const id = get().directorIds[oldName] || 0
+    if (id === 0) throw new Error('Director ID not found')
+
+    const countryId = metadata?.country ? (get().countryIds[metadata.country] || 0) : 0
+    const payload: Record<string, any> = { idpersona: id, name: firstName, lastName }
+    if (countryId > 0) payload.idcountries = [countryId]
+
+    const response = await fetch(`${API_BASE_URL}/person/UpdatePerson`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) throw new Error(`UpdatePerson failed: ${response.status}`)
+
     set((state) => {
       const newMeta = { ...state.directorMetadata }
-      if (metadata || newMeta[oldName]) {
-        newMeta[newName] = metadata || newMeta[oldName]
-        if (oldName !== newName) delete newMeta[oldName]
-      }
+      newMeta[newName] = metadata || newMeta[oldName] || {}
+      if (oldName !== newName) delete newMeta[oldName]
+
+      const newDirectorIds = { ...state.directorIds }
+      newDirectorIds[newName] = id
+      if (oldName !== newName) delete newDirectorIds[oldName]
+
+      const newDirectorById = { ...state.directorById, [id]: newName }
+
       return {
         directors: state.directors.map((d) => (d === oldName ? newName : d)).sort(),
         directorMetadata: newMeta,
+        directorIds: newDirectorIds,
+        directorById: newDirectorById,
       }
-    }),
+    })
+  },
 
   deleteDirector: (name) =>
     set((state) => {

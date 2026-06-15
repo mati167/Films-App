@@ -1,6 +1,5 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
 import FormHelperText from '@mui/material/FormHelperText'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
@@ -13,89 +12,114 @@ interface DurationInputProps {
   required?: boolean
 }
 
-function pad(n: string) {
-  return n.padStart(2, '0')
+// Positions of digit slots in "HH:MM:SS"
+// Index: 0,1 = hours  |  3,4 = minutes  |  6,7 = seconds
+const DIGIT_SLOTS = [0, 1, 3, 4, 6, 7]
+const COLON_POSITIONS = new Set([2, 5])
+
+function toDisplay(val: string): string {
+  const digits = (val || '00:00:00').replace(/\D/g, '').substring(0, 6).padEnd(6, '0')
+  return `${digits[0]}${digits[1]}:${digits[2]}${digits[3]}:${digits[4]}${digits[5]}`
 }
 
-function clamp(val: number, max: number) {
-  return Math.min(val, max)
+function digitsOnly(display: string): string {
+  return display.replace(/\D/g, '')
+}
+
+function nextSlot(pos: number): number {
+  const next = DIGIT_SLOTS.find((s) => s > pos)
+  return next ?? pos
+}
+
+function prevSlot(pos: number): number {
+  const prev = [...DIGIT_SLOTS].reverse().find((s) => s < pos)
+  return prev ?? pos
 }
 
 export default function DurationInput({ value, onChange, label = 'Duración', required }: DurationInputProps) {
   const theme = useTheme()
-  const refH = useRef<HTMLInputElement>(null)
-  const refM = useRef<HTMLInputElement>(null)
-  const refS = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const display = toDisplay(value)
 
-  // Parse value into parts
-  const parts = (value || '00:00:00').split(':')
-  const hVal = parts[0] ?? '00'
-  const mVal = parts[1] ?? '00'
-  const sVal = parts[2]?.substring(0, 2) ?? '00'
-
-  // Internal display strings
-  const [hDisplay, setHDisplay] = useState(pad(hVal))
-  const [mDisplay, setMDisplay] = useState(pad(mVal))
-  const [sDisplay, setSDisplay] = useState(pad(sVal))
-  const [focused, setFocused] = useState(false)
-
-  // Sync from external value changes (e.g. initial load)
+  // Keep cursor on a digit slot after every render
   useEffect(() => {
-    const p = (value || '00:00:00').split(':')
-    setHDisplay(pad(p[0] ?? '00'))
-    setMDisplay(pad(p[1] ?? '00'))
-    setSDisplay(pad((p[2] ?? '00').substring(0, 2)))
-  }, [value])
+    const el = inputRef.current
+    if (!el || document.activeElement !== el) return
+    // Let the browser settle first
+    const pos = el.selectionStart ?? 0
+    const slot = COLON_POSITIONS.has(pos) ? nextSlot(pos) : pos
+    el.setSelectionRange(slot, slot + 1)
+  })
 
-  const emit = (h: string, m: string, s: string) => {
-    onChange(`${pad(h)}:${pad(m)}:${pad(s)}`)
+  const moveTo = (pos: number) => {
+    requestAnimationFrame(() => {
+      inputRef.current?.setSelectionRange(pos, pos + 1)
+    })
   }
 
-  const handleSegment = (
-    raw: string,
-    max: number,
-    setter: (v: string) => void,
-    current: string,
-    nextRef: React.RefObject<HTMLInputElement | null> | null,
-    emitWith: (v: string) => void
-  ) => {
-    // Only allow digits
-    const digits = raw.replace(/\D/g, '')
-    if (digits === '') {
-      setter('00')
-      emitWith('00')
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const el = inputRef.current
+    if (!el) return
+    const pos = el.selectionStart ?? 0
+    const slot = COLON_POSITIONS.has(pos) ? nextSlot(pos) : pos
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      moveTo(prevSlot(slot))
+      return
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      moveTo(nextSlot(slot))
+      return
+    }
+    if (e.key === 'Tab') return // let tab work normally
+
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      const d = digitsOnly(display)
+      const digitIdx = DIGIT_SLOTS.indexOf(slot)
+      if (digitIdx < 0) return
+      const arr = d.split('')
+      arr[digitIdx] = '0'
+      const newDigits = arr.join('')
+      const newDisplay = `${newDigits[0]}${newDigits[1]}:${newDigits[2]}${newDigits[3]}:${newDigits[4]}${newDigits[5]}`
+      onChange(newDisplay)
+      // Move cursor back
+      const prev = prevSlot(slot)
+      moveTo(prev)
       return
     }
 
-    // Build new value: append digit to last char of current display, keep last 2
-    const pending = (current.replace(/^0+/, '') + digits).slice(-2)
-    const numVal = clamp(parseInt(pending, 10) || 0, max)
-    const display = pad(String(numVal))
-    setter(display)
-    emitWith(display)
-
-    // Auto-advance when 2 digits typed and next exists
-    if (pending.length >= 2 && nextRef?.current) {
-      nextRef.current.focus()
-      nextRef.current.select()
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault()
+      const d = digitsOnly(display)
+      const digitIdx = DIGIT_SLOTS.indexOf(slot)
+      if (digitIdx < 0) return
+      const arr = d.split('')
+      arr[digitIdx] = e.key
+      const newDigits = arr.join('')
+      const newDisplay = `${newDigits[0]}${newDigits[1]}:${newDigits[2]}${newDigits[3]}:${newDigits[4]}${newDigits[5]}`
+      onChange(newDisplay)
+      // Advance to next slot
+      moveTo(nextSlot(slot))
+      return
     }
+
+    // Block everything else (letters, symbols, etc.)
+    e.preventDefault()
   }
 
-  const borderColor = focused
-    ? theme.palette.primary.main
-    : theme.palette.divider
+  const handleClick = () => {
+    const el = inputRef.current
+    if (!el) return
+    const pos = el.selectionStart ?? 0
+    const slot = COLON_POSITIONS.has(pos) ? nextSlot(pos) : pos
+    moveTo(slot)
+  }
 
-  const inputStyle: React.CSSProperties = {
-    width: 36,
-    border: 'none',
-    outline: 'none',
-    background: 'transparent',
-    color: theme.palette.text.primary,
-    fontSize: 16,
-    fontFamily: 'inherit',
-    textAlign: 'center',
-    padding: 0,
-    caretColor: theme.palette.primary.main,
+  const handleFocus = () => {
+    moveTo(DIGIT_SLOTS[0])
   }
 
   return (
@@ -104,88 +128,46 @@ export default function DurationInput({ value, onChange, label = 'Duración', re
         {label}
       </InputLabel>
       <Box
-        onClick={() => refH.current?.focus()}
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0,
-          px: 1.5,
+          px: 1.75,
           height: 56,
           border: '1px solid',
-          borderColor: focused ? 'primary.main' : 'divider',
+          borderColor: 'divider',
           borderRadius: 1,
-          cursor: 'text',
-          transition: 'border-color 0.2s',
-          boxShadow: focused ? `0 0 0 2px ${theme.palette.primary.main}22` : 'none',
           mt: '16px',
+          transition: 'border-color 0.2s, box-shadow 0.2s',
+          '&:focus-within': {
+            borderColor: 'primary.main',
+            boxShadow: `0 0 0 2px ${theme.palette.primary.main}33`,
+          },
+          cursor: 'text',
         }}
+        onClick={() => inputRef.current?.focus()}
       >
-        {/* Hours */}
         <input
-          ref={refH}
-          style={inputStyle}
-          value={hDisplay}
-          onFocus={(e) => { setFocused(true); e.target.select() }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Backspace') {
-              setHDisplay('00')
-              emit('00', mDisplay, sDisplay)
-            }
-            if (e.key === 'ArrowRight') { refM.current?.focus(); refM.current?.select() }
+          ref={inputRef}
+          value={display}
+          onChange={() => {/* controlled via keyDown */}}
+          onKeyDown={handleKeyDown}
+          onClick={handleClick}
+          onFocus={handleFocus}
+          style={{
+            width: '100%',
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            color: theme.palette.text.primary,
+            fontSize: 16,
+            fontFamily: 'monospace',
+            letterSpacing: '0.15em',
+            padding: 0,
+            caretColor: theme.palette.primary.main,
           }}
-          onChange={(e) =>
-            handleSegment(e.target.value, 99, setHDisplay, hDisplay, refM, (v) => emit(v, mDisplay, sDisplay))
-          }
-          maxLength={2}
           inputMode="numeric"
-        />
-
-        <Typography sx={{ color: 'text.secondary', fontWeight: 700, userSelect: 'none', mx: 0.25 }}>:</Typography>
-
-        {/* Minutes */}
-        <input
-          ref={refM}
-          style={inputStyle}
-          value={mDisplay}
-          onFocus={(e) => { setFocused(true); e.target.select() }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Backspace') {
-              setMDisplay('00')
-              emit(hDisplay, '00', sDisplay)
-            }
-            if (e.key === 'ArrowLeft') { refH.current?.focus(); refH.current?.select() }
-            if (e.key === 'ArrowRight') { refS.current?.focus(); refS.current?.select() }
-          }}
-          onChange={(e) =>
-            handleSegment(e.target.value, 59, setMDisplay, mDisplay, refS, (v) => emit(hDisplay, v, sDisplay))
-          }
-          maxLength={2}
-          inputMode="numeric"
-        />
-
-        <Typography sx={{ color: 'text.secondary', fontWeight: 700, userSelect: 'none', mx: 0.25 }}>:</Typography>
-
-        {/* Seconds */}
-        <input
-          ref={refS}
-          style={inputStyle}
-          value={sDisplay}
-          onFocus={(e) => { setFocused(true); e.target.select() }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Backspace') {
-              setSDisplay('00')
-              emit(hDisplay, mDisplay, '00')
-            }
-            if (e.key === 'ArrowLeft') { refM.current?.focus(); refM.current?.select() }
-          }}
-          onChange={(e) =>
-            handleSegment(e.target.value, 59, setSDisplay, sDisplay, null, (v) => emit(hDisplay, mDisplay, v))
-          }
-          maxLength={2}
-          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
         />
       </Box>
       <FormHelperText>Horas : Minutos : Segundos</FormHelperText>

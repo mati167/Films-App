@@ -1,6 +1,7 @@
 import { useRef, forwardRef } from 'react'
 import TextField from '@mui/material/TextField'
 import { useTheme } from '@mui/material/styles'
+import type { InputBaseComponentProps } from '@mui/material/InputBase'
 
 interface DurationInputProps {
   value: string          // "HH:MM:SS"
@@ -147,7 +148,7 @@ export default function DurationInput({ value, onChange, label = 'Duración', re
       helperText="Horas : Minutos : Segundos"
       slotProps={{
         input: {
-          inputComponent: MaskedInput as React.ElementType,
+          inputComponent: MaskedInput as unknown as React.ElementType<InputBaseComponentProps>,
           inputProps: {
             onChangeMasked: onChange,
             display,

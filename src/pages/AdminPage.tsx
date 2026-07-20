@@ -72,6 +72,7 @@ export default function AdminPage() {
     const [lastName, setLastName] = useState('')
     const [selectedCountry, setSelectedCountry] = useState<string>('')
     const [selectedContinent, setSelectedContinent] = useState<string>('')
+    const [isoCode, setIsoCode] = useState('')
 
     const continents = ['America', 'Europa', 'Asia', 'Africa', 'Oceania']
 
@@ -138,6 +139,7 @@ export default function AdminPage() {
                 setSelectedCountry(directorMetadata[value]?.country || '')
             } else if (tab === 3) {
                 setSelectedContinent(countryMetadata[value]?.continent || '')
+                setIsoCode(countryMetadata[value]?.isoCode || '')
             }
         } else {
             setEditingEntity(null)
@@ -146,6 +148,7 @@ export default function AdminPage() {
             setLastName('')
             setSelectedCountry('')
             setSelectedContinent('')
+            setIsoCode('')
         }
         setEntityOpen(true)
     }
@@ -173,11 +176,11 @@ export default function AdminPage() {
                 if (editingEntity) await updateDirector(editingEntity, finalValue, { country: selectedCountry })
                 else await addDirector(finalValue, { country: selectedCountry }, countryId)
             } else if (tab === 2) { // Genres
-                if (editingEntity) updateGenre(editingEntity, finalValue)
-                else addGenre(entityValue)
+                if (editingEntity) await updateGenre(editingEntity, finalValue)
+                else await addGenre(entityValue)
             } else if (tab === 3) { // Countries
-                if (editingEntity) updateCountry(editingEntity, finalValue, { continent: selectedContinent })
-                else addCountry(finalValue, { continent: selectedContinent })
+                if (editingEntity) await updateCountry(editingEntity, finalValue, { continent: selectedContinent, isoCode })
+                else await addCountry(finalValue, { continent: selectedContinent, isoCode })
             }
             setEntityOpen(false)
         } catch (err: any) {
@@ -391,6 +394,15 @@ export default function AdminPage() {
                         ) : tab === 3 ? (
                             <>
                                 <TextField label="Nombre" value={entityValue} onChange={(e) => setEntityValue(e.target.value)} fullWidth required autoFocus />
+                                <TextField
+                                    label="Código ISO"
+                                    value={isoCode}
+                                    onChange={(e) => setIsoCode(e.target.value.toUpperCase().slice(0, 2))}
+                                    slotProps={{ htmlInput: { maxLength: 2 } }}
+                                    helperText="2 caracteres (ej: AR, US)"
+                                    fullWidth
+                                    required
+                                />
                                 <Autocomplete
                                     options={continents}
                                     value={selectedContinent}

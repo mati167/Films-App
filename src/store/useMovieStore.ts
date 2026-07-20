@@ -49,14 +49,22 @@ interface MovieStore {
   addDirector: (name: string, metadata?: DirectorMetadata, countryId?: number) => Promise<void>
   updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata) => Promise<void>
   deleteDirector: (name: string) => void
-  addGenre: (name: string) => void
-  updateGenre: (oldName: string, newName: string) => void
+  addGenre: (name: string) => Promise<void>
+  updateGenre: (oldName: string, newName: string) => Promise<void>
   deleteGenre: (name: string) => void
-  addCountry: (name: string, metadata?: CountryMetadata) => void
-  updateCountry: (oldName: string, newName: string, metadata?: CountryMetadata) => void
+  addCountry: (name: string, metadata?: CountryMetadata) => Promise<void>
+  updateCountry: (oldName: string, newName: string, metadata?: CountryMetadata) => Promise<void>
   deleteCountry: (name: string) => void
   fetchMovieDetails: (imdbId: string) => Promise<any>
   isLoading: boolean
+}
+
+const continentToId: Record<string, number> = {
+  America: 1,
+  Europa: 2,
+  Asia: 3,
+  Africa: 4,
+  Oceania: 5,
 }
 
 const initialFilters: SearchFilters = {
@@ -494,39 +502,119 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       }
     }),
 
-  addGenre: (name) =>
-    set((state) => ({
-      genres: [...state.genres, name].sort(),
-    })),
+  addGenre: async (name) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/Genre/addGenre`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: name }),
+      })
+      if (!response.ok) throw new Error(`addGenre failed: ${response.status}`)
+      const created = await response.json()
+      const newId: number = created.idgenre || created.id || 0
+      set((state) => ({
+        genres: [...state.genres, name].sort(),
+        genreIds: { ...state.genreIds, [name]: newId },
+        genreById: { ...state.genreById, [newId]: name },
+      }))
+    } catch (error) {
+      console.error('Error adding genre:', error)
+      throw error
+    }
+  },
 
-  updateGenre: (oldName, newName) =>
-    set((state) => ({
-      genres: state.genres.map((g) => (g === oldName ? newName : g)).sort(),
-    })),
+  updateGenre: async (oldName, newName) => {
+    const id = get().genreIds[oldName] || 0
+    if (id === 0) throw new Error('Genre ID not found')
+    try {
+      const response = await fetch(`${API_BASE_URL}/Genre/updateGenre`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idgenre: id, description: newName }),
+      })
+      if (!response.ok) throw new Error(`updateGenre failed: ${response.status}`)
+      set((state) => ({
+        genres: state.genres.map((g) => (g === oldName ? newName : g)).sort(),
+        genreIds: { ...state.genreIds, [newName]: id },
+        genreById: { ...state.genreById, [id]: newName },
+      }))
+    } catch (error) {
+      console.error('Error updating genre:', error)
+      throw error
+    }
+  },
 
   deleteGenre: (name) =>
     set((state) => ({
       genres: state.genres.filter((g) => g !== name),
     })),
 
-  addCountry: (name, metadata) =>
-    set((state) => ({
-      countries: [...state.countries, name].sort(),
-      countryMetadata: { ...state.countryMetadata, [name]: metadata || {} }
-    })),
+  addCountry: async (name, metadata) => {
+    const continentId = metadata?.continent ? continentToId[metadata.continent] || 0 : 0
+    try {
+      const response = await fetch(`${API_BASE_URL}/Country/addCountry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          countryName: name,
+          idcontinent: continentId,
+          isoCode: metadata?.isoCode || '',
+        }),
+      })
+      if (!response.ok) throw new Error(`addCountry failed: ${response.status}`)
+      const created = await response.json()
+      const newId: number = created.idcountry || created.id || 0
+      set((state) => ({
+        countries: [...state.countries, name].sort(),
+        countryIds: { ...state.countryIds, [name]: newId },
+        countryById: { ...state.countryById, [newId]: name },
+        countryMetadata: { ...state.countryMetadata, [name]: metadata || {} },
+        countryISOById: { ...state.countryISOById, [newId]: metadata?.isoCode || '' },
+      }))
+    } catch (error) {
+      console.error('Error adding country:', error)
+      throw error
+    }
+  },
 
-  updateCountry: (oldName, newName, metadata) =>
-    set((state) => {
-      const newMeta = { ...state.countryMetadata }
-      if (metadata || newMeta[oldName]) {
-        newMeta[newName] = metadata || newMeta[oldName]
+  updateCountry: async (oldName, newName, metadata) => {
+    const id = get().countryIds[oldName] || 0
+    if (id === 0) throw new Error('Country ID not found')
+    const continentId = metadata?.continent ? continentToId[metadata.continent] || 0 : 0
+    try {
+      const response = await fetch(`${API_BASE_URL}/Country/updateCountry`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idcountry: id,
+          countryName: newName,
+          idcontinent: continentId,
+          isoCode: metadata?.isoCode || '',
+        }),
+      })
+      if (!response.ok) throw new Error(`updateCountry failed: ${response.status}`)
+      set((state) => {
+        const newMeta = { ...state.countryMetadata }
+        newMeta[newName] = metadata || newMeta[oldName] || {}
         if (oldName !== newName) delete newMeta[oldName]
-      }
-      return {
-        countries: state.countries.map((c) => (c === oldName ? newName : c)).sort(),
-        countryMetadata: newMeta,
-      }
-    }),
+        const newCountryIds = { ...state.countryIds }
+        newCountryIds[newName] = id
+        if (oldName !== newName) delete newCountryIds[oldName]
+        const newCountryById = { ...state.countryById, [id]: newName }
+        const newCountryISOById = { ...state.countryISOById, [id]: metadata?.isoCode || state.countryISOById[id] || '' }
+        return {
+          countries: state.countries.map((c) => (c === oldName ? newName : c)).sort(),
+          countryMetadata: newMeta,
+          countryIds: newCountryIds,
+          countryById: newCountryById,
+          countryISOById: newCountryISOById,
+        }
+      })
+    } catch (error) {
+      console.error('Error updating country:', error)
+      throw error
+    }
+  },
 
   deleteCountry: (name) =>
     set((state) => {

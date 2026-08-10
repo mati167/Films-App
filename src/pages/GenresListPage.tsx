@@ -8,6 +8,12 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardActionArea from '@mui/material/CardActionArea'
+import Chip from '@mui/material/Chip'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 import useMovieStore from '@/store/useMovieStore'
 import SearchInput from '@/components/SearchInput'
@@ -28,6 +34,8 @@ export default function GenresListPage() {
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const navigate = useNavigate()
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -76,6 +84,39 @@ export default function GenresListPage() {
 
             {isLoading ? (
                 <LoadingIndicator />
+            ) : isMobile ? (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+                    {genresList.map((genre) => (
+                        <Card
+                            key={genre.name}
+                            elevation={0}
+                            sx={{
+                                backgroundColor: 'background.paper',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 2,
+                            }}
+                        >
+                            <CardActionArea onClick={() => navigate(`/genre/${genre.id}`)}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                            {genre.name}
+                                        </Typography>
+                                        <Chip
+                                            label={`${genre.movieCount} películas`}
+                                            size="small"
+                                            sx={{ backgroundColor: 'rgba(229, 9, 20, 0.1)', color: 'primary.light' }}
+                                        />
+                                    </Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        ID: {genre.id}
+                                    </Typography>
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
+                    ))}
+                </Box>
             ) : (
                 <TableContainer component={Paper} elevation={0}>
                     <Table>

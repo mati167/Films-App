@@ -192,7 +192,14 @@ export default function AdminPage() {
         <Box>
             <Typography variant="h4" sx={{ mb: 4 }}>Administración</Typography>
 
-            <Tabs value={tab} onChange={(_, v) => { setTab(v); setMovieSearch(''); setEntitySearch('') }} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs 
+                value={tab} 
+                onChange={(_, v) => { setTab(v); setMovieSearch(''); setEntitySearch('') }} 
+                sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+            >
                 <Tab label="Películas" />
                 <Tab label="Directores" />
                 <Tab label="Géneros" />
@@ -203,7 +210,7 @@ export default function AdminPage() {
             {tab === 0 && (
                 <>
                     <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2 }}>
                             <TextField
                                 fullWidth
                                 size="small"
@@ -217,12 +224,12 @@ export default function AdminPage() {
                                     },
                                 }}
                             />
-                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleMovieOpen()} sx={{ flexShrink: 0 }}>
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleMovieOpen()} sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
                                 Nueva Película
                             </Button>
                         </Box>
                     </Paper>
-                    <TableContainer component={Paper} elevation={0}>
+                    <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
                         <Table>
                             <TableHead>
                                 <TableRow>
@@ -284,7 +291,7 @@ export default function AdminPage() {
             {(tab === 1 || tab === 2 || tab === 3) && (
                 <>
                     <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2 }}>
                             <TextField
                                 fullWidth
                                 size="small"
@@ -298,12 +305,12 @@ export default function AdminPage() {
                                     },
                                 }}
                             />
-                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleEntityOpen()} sx={{ flexShrink: 0 }}>
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleEntityOpen()} sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
                                 Nuevo {tab === 1 ? 'Director' : tab === 2 ? 'Género' : 'País'}
                             </Button>
                         </Box>
                     </Paper>
-                    <TableContainer component={Paper} elevation={0}>
+                    <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
                         <Table>
                             <TableHead>
                                 <TableRow>

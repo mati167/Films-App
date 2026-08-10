@@ -8,6 +8,12 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardActionArea from '@mui/material/CardActionArea'
+import Chip from '@mui/material/Chip'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import PublicIcon from '@mui/icons-material/Public'
 import useMovieStore from '@/store/useMovieStore'
 import SearchInput from '@/components/SearchInput'
@@ -30,6 +36,8 @@ export default function CountriesListPage() {
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const navigate = useNavigate()
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -90,6 +98,65 @@ export default function CountriesListPage() {
 
             {isLoading ? (
                 <LoadingIndicator />
+            ) : isMobile ? (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+                    {countriesList.map((country) => (
+                        <Card
+                            key={country.name}
+                            elevation={0}
+                            sx={{
+                                backgroundColor: 'background.paper',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 2,
+                            }}
+                        >
+                            <CardActionArea onClick={() => navigate(`/country/${country.id}`)}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            {country.isoCode ? (
+                                                <Box
+                                                    component="img"
+                                                    src={getCountryFlagUrl(country.isoCode)}
+                                                    alt={country.name}
+                                                    sx={{
+                                                        width: 24,
+                                                        height: 'auto',
+                                                        borderRadius: '2px',
+                                                    }}
+                                                />
+                                            ) : '🌐'}
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                                {country.name}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                                        <Chip
+                                            label={`${country.movieCount} películas`}
+                                            size="small"
+                                            sx={{ backgroundColor: 'rgba(229, 9, 20, 0.1)', color: 'primary.light' }}
+                                        />
+                                        <Chip
+                                            label={`${country.directorCount} directores`}
+                                            size="small"
+                                            sx={{ backgroundColor: 'rgba(29, 185, 84, 0.1)', color: 'secondary.light' }}
+                                        />
+                                    </Box>
+                                    {country.continent && (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            <ContinentShape continent={country.continent} size={16} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                {country.continent}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
+                    ))}
+                </Box>
             ) : (
                 <TableContainer component={Paper} elevation={0}>
                     <Table>

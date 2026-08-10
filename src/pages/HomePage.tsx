@@ -21,8 +21,10 @@ export default function HomePage() {
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'space-between',
+          gap: { xs: 1.5, sm: 0 },
           mb: 3,
         }}
       >

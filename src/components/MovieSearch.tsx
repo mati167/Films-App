@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 import InputAdornment from '@mui/material/InputAdornment'
@@ -29,9 +29,17 @@ function HHMMSSToMinutes(hhmmss: string): number {
 export default function MovieSearch() {
   const { filters, setFilter, resetFilters, directors, genres, countries, directorIds, genreIds, countryIds } = useMovieStore()
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [localDuration, setLocalDuration] = useState<number>(
+    filters.maxDuration ? HHMMSSToMinutes(filters.maxDuration) : 240
+  )
+
+  useEffect(() => {
+    setLocalDuration(filters.maxDuration ? HHMMSSToMinutes(filters.maxDuration) : 240)
+  }, [filters.maxDuration])
 
   const hasActiveFilters =
     filters.name ||
+    filters.id !== null ||
     filters.country !== null ||
     filters.director !== null ||
     filters.genre !== null ||
@@ -59,6 +67,27 @@ export default function MovieSearch() {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: showAdvanced ? 2 : 0 }}>
+        <TextField
+          size="small"
+          placeholder="ID"
+          value={filters.id ?? ''}
+          onChange={(e) => {
+            const val = e.target.value
+            setFilter('id', val === '' ? null : parseInt(val, 10))
+          }}
+          sx={{ width: 100 }}
+          type="number"
+          slotProps={{
+            htmlInput: { min: 1 },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>#</Typography>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
         <TextField
           fullWidth
           size="small"
@@ -139,8 +168,9 @@ export default function MovieSearch() {
               </Typography>
             </Box>
             <Slider
-              value={filters.maxDuration ? HHMMSSToMinutes(filters.maxDuration) : 240}
-              onChange={(_, value) =>
+              value={localDuration}
+              onChange={(_, value) => setLocalDuration(value as number)}
+              onChangeCommitted={(_, value) =>
                 setFilter('maxDuration', value === 240 ? null : minutesToHHMMSS(value as number))
               }
               min={60}

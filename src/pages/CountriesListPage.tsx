@@ -33,6 +33,7 @@ export default function CountriesListPage() {
     const countryIds = useMovieStore((s) => s.countryIds)
     const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
+    const [searchId, setSearchId] = useState<number | null>(null)
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const navigate = useNavigate()
@@ -64,7 +65,11 @@ export default function CountriesListPage() {
         const norm = (s: string) =>
             s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-        const filtered = list.filter((c) => norm(c.name).includes(norm(searchTerm)))
+        const filtered = list.filter((c) => {
+            const matchesName = norm(c.name).includes(norm(searchTerm))
+            const matchesId = searchId === null || c.id === searchId
+            return matchesName && matchesId
+        })
 
         return filtered.sort((a, b) => {
             let comparison = 0
@@ -81,7 +86,7 @@ export default function CountriesListPage() {
             }
             return sortDirection === 'asc' ? comparison : -comparison
         })
-    }, [countries, searchTerm, sortKey, sortDirection, countryIds, countryMetadata])
+    }, [countries, searchTerm, searchId, sortKey, sortDirection, countryIds, countryMetadata])
 
     return (
         <Box>
@@ -94,6 +99,9 @@ export default function CountriesListPage() {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 placeholder="Buscar pais..."
+                showIdSearch={true}
+                idValue={searchId}
+                onIdChange={setSearchId}
             />
 
             {isLoading ? (
@@ -123,7 +131,8 @@ export default function CountriesListPage() {
                                                     sx={{
                                                         width: 24,
                                                         height: 'auto',
-                                                        borderRadius: '2px',
+                                                        borderRadius: '3px',
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                                     }}
                                                 />
                                             ) : '🌐'}
@@ -225,9 +234,8 @@ export default function CountriesListPage() {
                                                 sx={{
                                                     width: 30,
                                                     height: 'auto',
-                                                    borderRadius: '4px',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                                    border: '1px solid rgba(255,255,255,0.1)'
+                                                    borderRadius: '3px',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                                 }}
                                             />
                                         ) : '🌐'}

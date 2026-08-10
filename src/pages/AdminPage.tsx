@@ -50,7 +50,9 @@ export default function AdminPage() {
 
     // Search States
     const [movieSearch, setMovieSearch] = useState('')
+    const [movieIdSearch, setMovieIdSearch] = useState('')
     const [entitySearch, setEntitySearch] = useState('')
+    const [entityIdSearch, setEntityIdSearch] = useState('')
 
     // Movie Sorting States
     const [movieSortKey, setMovieSortKey] = useState<string>('name')
@@ -79,12 +81,12 @@ export default function AdminPage() {
     const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
     const sortedMovies = useMemo(() => {
-        const filtered = movieSearch
-            ? movies.filter((m) => {
-                const dirNames = m.directors.map(id => directorById[id] || '').join(' ')
-                return norm(m.name).includes(norm(movieSearch)) || norm(dirNames).includes(norm(movieSearch))
-              })
-            : movies
+        const filtered = movies.filter((m) => {
+            const matchesId = !movieIdSearch || m.id === parseInt(movieIdSearch, 10)
+            const dirNames = m.directors.map(id => directorById[id] || '').join(' ')
+            const matchesSearch = !movieSearch || norm(m.name).includes(norm(movieSearch)) || norm(dirNames).includes(norm(movieSearch))
+            return matchesId && matchesSearch
+        })
         return [...filtered].sort((a, b) => {
             let comp = 0
             if (movieSortKey === 'name') comp = a.name.localeCompare(b.name)
@@ -96,7 +98,7 @@ export default function AdminPage() {
             }
             return movieSortDir === 'asc' ? comp : -comp
         })
-    }, [movies, movieSortKey, movieSortDir, movieSearch, directorById])
+    }, [movies, movieSortKey, movieSortDir, movieSearch, movieIdSearch, directorById])
 
     const handleMovieSort = (key: string) => {
         if (movieSortKey === key) setMovieSortDir(movieSortDir === 'asc' ? 'desc' : 'asc')
@@ -105,14 +107,24 @@ export default function AdminPage() {
 
     const currentEntities = useMemo(() => {
         const list = tab === 1 ? directors : tab === 2 ? genres : countries
-        const filtered = entitySearch
-            ? list.filter((item) => norm(item).includes(norm(entitySearch)))
-            : list
+        const filtered = list.filter((item) => {
+            const matchesName = !entitySearch || norm(item).includes(norm(entitySearch))
+            let matchesId = true
+            if (entityIdSearch) {
+                const id = tab === 1 
+                    ? (directorIds[item] || 0) 
+                    : tab === 3 
+                        ? (countryIds[item] || 0) 
+                        : (genreIds[item] || 0)
+                matchesId = id === parseInt(entityIdSearch, 10)
+            }
+            return matchesName && matchesId
+        })
         return [...filtered].sort((a, b) => {
             const comp = a.localeCompare(b)
             return entitySortDir === 'asc' ? comp : -comp
         })
-    }, [tab, directors, genres, countries, entitySortDir, entitySearch])
+    }, [tab, directors, genres, countries, entitySearch, entityIdSearch, entitySortDir, directorIds, countryIds, genreIds])
 
     const handleMovieOpen = (movie?: Movie) => {
         if (movie) {
@@ -212,6 +224,20 @@ export default function AdminPage() {
                     <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2 }}>
                             <TextField
+                                size="small"
+                                placeholder="ID"
+                                value={movieIdSearch}
+                                onChange={(e) => setMovieIdSearch(e.target.value)}
+                                sx={{ width: 100 }}
+                                type="number"
+                                slotProps={{
+                                    htmlInput: { min: 1 },
+                                    input: {
+                                        startAdornment: <InputAdornment position="start"><Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>#</Typography></InputAdornment>,
+                                    },
+                                }}
+                            />
+                            <TextField
                                 fullWidth
                                 size="small"
                                 placeholder="Buscar por nombre o director..."
@@ -292,6 +318,20 @@ export default function AdminPage() {
                 <>
                     <Paper elevation={0} sx={{ p: 2.5, mb: 3, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2 }}>
+                            <TextField
+                                size="small"
+                                placeholder="ID"
+                                value={entityIdSearch}
+                                onChange={(e) => setEntityIdSearch(e.target.value)}
+                                sx={{ width: 100 }}
+                                type="number"
+                                slotProps={{
+                                    htmlInput: { min: 1 },
+                                    input: {
+                                        startAdornment: <InputAdornment position="start"><Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>#</Typography></InputAdornment>,
+                                    },
+                                }}
+                            />
                             <TextField
                                 fullWidth
                                 size="small"

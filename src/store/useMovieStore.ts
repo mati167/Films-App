@@ -69,6 +69,7 @@ const continentToId: Record<string, number> = {
 
 const initialFilters: SearchFilters = {
   name: '',
+  id: null,
   country: null,
   director: null,
   genre: null,
@@ -633,12 +634,13 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
     return movies.filter((movie) => {
       const matchesName = !filters.name || norm(movie.name).includes(norm(filters.name))
+      const matchesId = filters.id === null || movie.id === filters.id
       const matchesCountry = filters.country === null || movie.countries.includes(filters.country)
       const matchesDirector = filters.director === null || movie.directors.includes(filters.director)
       const matchesGenre = filters.genre === null || movie.genres.includes(filters.genre)
       const matchesDuration = !filters.maxDuration || movie.duration <= filters.maxDuration
 
-      return matchesName && matchesCountry && matchesDirector && matchesGenre && matchesDuration
+      return matchesName && matchesId && matchesCountry && matchesDirector && matchesGenre && matchesDuration
     })
   },
 }))

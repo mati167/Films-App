@@ -14,6 +14,7 @@ export interface Movie {
 
 export interface SearchFilters {
   name: string
+  id: number | null
   country: number | null
   director: number | null
   genre: number | null

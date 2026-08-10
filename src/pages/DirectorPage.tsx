@@ -73,7 +73,7 @@ export default function DirectorPage() {
                           component="img"
                           src={getCountryFlagUrl(c.iso)}
                           alt={c.name}
-                          sx={{ width: 16, height: 'auto', borderRadius: '2px' }}
+                          sx={{ width: 16, height: 'auto', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}
                         />
                       )}
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>{c.name}</Typography>

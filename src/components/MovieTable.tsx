@@ -178,8 +178,8 @@ export default function MovieTable({ movies }: MovieTableProps) {
                               backgroundImage: `url(${getCountryFlagUrl(iso)})`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
-                              borderRadius: '2px',
-                              border: '1px solid rgba(255,255,255,0.1)',
+                              borderRadius: '3px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                             }}
                           />
                         </Tooltip>
@@ -362,8 +362,8 @@ export default function MovieTable({ movies }: MovieTableProps) {
                                   backgroundImage: `url(${getCountryFlagUrl(iso)})`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
-                                  borderRadius: '4px',
-                                  border: '1px solid rgba(255,255,255,0.1)'
+                                  borderRadius: '3px',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                 }}
                               />
                             </Box>

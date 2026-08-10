@@ -32,6 +32,7 @@ export default function DirectorsListPage() {
     const directorIds = useMovieStore((s) => s.directorIds)
     const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
+    const [searchId, setSearchId] = useState<number | null>(null)
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const navigate = useNavigate()
@@ -50,7 +51,6 @@ export default function DirectorsListPage() {
     const directorsList = useMemo(() => {
         const list = directors.map((name) => {
             const metadata = directorMetadata[name]
-            // Use the new all-countries array, fall back to single entry for backward compat
             const countries = metadata?.countries?.length
                 ? metadata.countries
                 : metadata?.countryISO
@@ -67,9 +67,11 @@ export default function DirectorsListPage() {
         const norm = (s: string) =>
             s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-        const filtered = list.filter((d) =>
-            d.movieCount > 0 && norm(d.name).includes(norm(searchTerm))
-        )
+        const filtered = list.filter((d) => {
+            const matchesName = norm(d.name).includes(norm(searchTerm))
+            const matchesId = searchId === null || d.id === searchId
+            return matchesName && matchesId && d.movieCount > 0
+        })
 
         return filtered.sort((a, b) => {
             let comparison = 0
@@ -77,7 +79,7 @@ export default function DirectorsListPage() {
             else if (sortKey === 'movieCount') comparison = a.movieCount - b.movieCount
             return sortDirection === 'asc' ? comparison : -comparison
         })
-    }, [directors, searchTerm, sortKey, sortDirection, directorIds, directorMetadata])
+    }, [directors, searchTerm, searchId, sortKey, sortDirection, directorIds, directorMetadata])
 
     return (
         <Box>
@@ -90,6 +92,9 @@ export default function DirectorsListPage() {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 placeholder="Buscar director..."
+                showIdSearch={true}
+                idValue={searchId}
+                onIdChange={setSearchId}
             />
 
             {isLoading ? (
@@ -135,7 +140,8 @@ export default function DirectorsListPage() {
                                                                 sx={{
                                                                     width: 20,
                                                                     height: 'auto',
-                                                                    borderRadius: '2px',
+                                                                    borderRadius: '3px',
+                                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                                                 }}
                                                             />
                                                         </Tooltip>
@@ -203,7 +209,7 @@ export default function DirectorsListPage() {
                                                                 width: 28,
                                                                 height: 'auto',
                                                                 borderRadius: '3px',
-                                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                                boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                                             }}
                                                         />
                                                     </Tooltip>

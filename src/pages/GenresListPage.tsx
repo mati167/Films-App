@@ -31,6 +31,7 @@ export default function GenresListPage() {
     const genreIds = useMovieStore((s) => s.genreIds)
     const isLoading = useMovieStore((s) => s.isLoading)
     const [searchTerm, setSearchTerm] = useState('')
+    const [searchId, setSearchId] = useState<number | null>(null)
     const [sortKey, setSortKey] = useState<SortKey>('movieCount')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const navigate = useNavigate()
@@ -56,7 +57,11 @@ export default function GenresListPage() {
         const norm = (s: string) =>
             s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-        const filtered = list.filter((g) => norm(g.name).includes(norm(searchTerm)))
+        const filtered = list.filter((g) => {
+            const matchesName = norm(g.name).includes(norm(searchTerm))
+            const matchesId = searchId === null || g.id === searchId
+            return matchesName && matchesId
+        })
 
         return filtered.sort((a, b) => {
             let comparison = 0
@@ -67,7 +72,7 @@ export default function GenresListPage() {
             }
             return sortDirection === 'asc' ? comparison : -comparison
         })
-    }, [genres, searchTerm, sortKey, sortDirection, genreIds, genreMetadata])
+    }, [genres, searchTerm, searchId, sortKey, sortDirection, genreIds, genreMetadata])
 
     return (
         <Box>
@@ -80,6 +85,9 @@ export default function GenresListPage() {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 placeholder="Buscar genero..."
+                showIdSearch={true}
+                idValue={searchId}
+                onIdChange={setSearchId}
             />
 
             {isLoading ? (

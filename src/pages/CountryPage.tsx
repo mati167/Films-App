@@ -126,7 +126,7 @@ export default function CountryPage() {
                     component="img"
                     src={getCountryFlagUrl(countryISO)}
                     alt={countryName}
-                    sx={{ width: 28, height: 'auto', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                    sx={{ width: 28, height: 'auto', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}
                   />
                 </Tooltip>
               )}

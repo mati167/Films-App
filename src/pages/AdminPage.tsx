@@ -27,9 +27,11 @@ import Autocomplete from '@mui/material/Autocomplete'
 import Chip from '@mui/material/Chip'
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
+import Tooltip from '@mui/material/Tooltip'
 import useMovieStore from '@/store/useMovieStore'
 import type { Movie } from '@/types/movie'
 import { ContinentShape } from '@/utils/continentIcons'
+import { getCountryFlagUrl } from '@/utils/countryFlags'
 import MovieForm from '@/components/MovieForm'
 
 import TableSortLabel from '@mui/material/TableSortLabel'
@@ -72,7 +74,7 @@ export default function AdminPage() {
     // New fields for Director/Country
     const [firstName, setFirstName] = useState('')
     const [lastName, setLastName] = useState('')
-    const [selectedCountry, setSelectedCountry] = useState<string>('')
+    const [selectedCountries, setSelectedCountries] = useState<string[]>([])
     const [selectedContinent, setSelectedContinent] = useState<string>('')
     const [isoCode, setIsoCode] = useState('')
 
@@ -148,7 +150,14 @@ export default function AdminPage() {
                     setFirstName(value)
                     setLastName('')
                 }
-                setSelectedCountry(directorMetadata[value]?.country || '')
+                const meta = directorMetadata[value]
+                if (meta?.countries && meta.countries.length > 0) {
+                    setSelectedCountries(meta.countries.map(c => c.name))
+                } else if (meta?.country) {
+                    setSelectedCountries([meta.country])
+                } else {
+                    setSelectedCountries([])
+                }
             } else if (tab === 3) {
                 setSelectedContinent(countryMetadata[value]?.continent || '')
                 setIsoCode(countryMetadata[value]?.isoCode || '')
@@ -158,7 +167,7 @@ export default function AdminPage() {
             setEntityValue('')
             setFirstName('')
             setLastName('')
-            setSelectedCountry('')
+            setSelectedCountries([])
             setSelectedContinent('')
             setIsoCode('')
         }
@@ -184,9 +193,19 @@ export default function AdminPage() {
 
         try {
             if (tab === 1) { // Directors
-                const countryId = countryIds[selectedCountry] || 0
-                if (editingEntity) await updateDirector(editingEntity, finalValue, { country: selectedCountry })
-                else await addDirector(finalValue, { country: selectedCountry }, countryId)
+                const countryIdsArray = selectedCountries
+                    .map(c => countryIds[c] || 0)
+                    .filter(id => id > 0)
+                
+                const metadata: any = {
+                    countries: selectedCountries.map(name => {
+                        const iso = countryMetadata[name]?.isoCode || ''
+                        return { name, iso }
+                    })
+                }
+                
+                if (editingEntity) await updateDirector(editingEntity, finalValue, metadata, countryIdsArray)
+                else await addDirector(finalValue, metadata, countryIdsArray)
             } else if (tab === 2) { // Genres
                 if (editingEntity) await updateGenre(editingEntity, finalValue)
                 else await addGenre(entityValue)
@@ -380,7 +399,43 @@ export default function AdminPage() {
                                         <TableCell sx={{ fontWeight: 600 }}>{item}</TableCell>
                                         {tab === 1 && (
                                             <TableCell>
-                                                {directorMetadata[item]?.country}
+                                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                                    {directorMetadata[item]?.countries && directorMetadata[item].countries.length > 0 ? (
+                                                        directorMetadata[item].countries.map((c, idx) => (
+                                                            <Tooltip key={idx} title={c.name} arrow>
+                                                                <Box
+                                                                    component="img"
+                                                                    src={getCountryFlagUrl(c.iso)}
+                                                                    alt={c.name}
+                                                                    sx={{
+                                                                        width: 24,
+                                                                        height: 'auto',
+                                                                        borderRadius: '3px',
+                                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                                                                    }}
+                                                                />
+                                                            </Tooltip>
+                                                        ))
+                                                    ) : directorMetadata[item]?.countryISO ? (
+                                                        <Tooltip title={directorMetadata[item].country || ''} arrow>
+                                                            <Box
+                                                                component="img"
+                                                                src={getCountryFlagUrl(directorMetadata[item].countryISO)}
+                                                                alt={directorMetadata[item].country || ''}
+                                                                sx={{
+                                                                    width: 24,
+                                                                    height: 'auto',
+                                                                    borderRadius: '3px',
+                                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                                                                }}
+                                                            />
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                            {directorMetadata[item]?.country || '-'}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
                                             </TableCell>
                                         )}
                                         {tab === 3 && (
@@ -431,11 +486,13 @@ export default function AdminPage() {
                                 <TextField label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth required autoFocus />
                                 <TextField label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth required />
                                 <Autocomplete
+                                    multiple
                                     options={countries}
-                                    value={selectedCountry}
-                                    onChange={(_, v) => setSelectedCountry(v || '')}
-                                    renderInput={(params) => <TextField {...params} label="País" />}
+                                    value={selectedCountries}
+                                    onChange={(_, v) => setSelectedCountries(v)}
+                                    renderInput={(params) => <TextField {...params} label="Países" placeholder="Seleccionar países..." />}
                                     fullWidth
+                                    limitTags={3}
                                 />
                             </>
                         ) : tab === 3 ? (

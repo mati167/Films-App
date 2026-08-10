@@ -46,8 +46,8 @@ interface MovieStore {
   addMovie: (movie: Omit<Movie, 'id'>) => Promise<void>
   updateMovie: (id: number, movie: Partial<Movie>) => Promise<void>
   deleteMovie: (id: number) => void
-  addDirector: (name: string, metadata?: DirectorMetadata, countryId?: number) => Promise<void>
-  updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata) => Promise<void>
+  addDirector: (name: string, metadata?: DirectorMetadata, countryIds?: number[]) => Promise<void>
+  updateDirector: (oldName: string, newName: string, metadata?: DirectorMetadata, countryIds?: number[]) => Promise<void>
   deleteDirector: (name: string) => void
   addGenre: (name: string) => Promise<void>
   updateGenre: (oldName: string, newName: string) => Promise<void>
@@ -417,7 +417,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       movies: state.movies.filter((m) => m.id !== id),
     })),
 
-  addDirector: async (name, metadata, countryId) => {
+  addDirector: async (name, metadata, countryIds) => {
     // Split "Apellido, Nombre" back into parts for the API
     const parts = name.split(',').map((s) => s.trim())
     const lastName = parts[0] || name
@@ -425,8 +425,8 @@ const useMovieStore = create<MovieStore>((set, get) => ({
 
     try {
       const payload: Record<string, any> = { name: firstName, lastName }
-      if (countryId !== undefined && countryId > 0) {
-        payload.countryIds = [countryId]
+      if (countryIds && countryIds.length > 0) {
+        payload.countryIds = countryIds
       }
 
       const response = await fetch(`${API_BASE_URL}/person/addPerson`, {
@@ -452,7 +452,7 @@ const useMovieStore = create<MovieStore>((set, get) => ({
     }
   },
 
-  updateDirector: async (oldName, newName, metadata) => {
+  updateDirector: async (oldName, newName, metadata, countryIds) => {
     // Split "Apellido, Nombre" → lastName, firstName for the API
     const parts = newName.split(',').map((s) => s.trim())
     const lastName = parts[0] || newName
@@ -461,9 +461,10 @@ const useMovieStore = create<MovieStore>((set, get) => ({
     const id = get().directorIds[oldName] || 0
     if (id === 0) throw new Error('Director ID not found')
 
-    const countryId = metadata?.country ? (get().countryIds[metadata.country] || 0) : 0
     const payload: Record<string, any> = { idpersona: id, name: firstName, lastName }
-    if (countryId > 0) payload.idcountries = [countryId]
+    if (countryIds && countryIds.length > 0) {
+      payload.idcountries = countryIds
+    }
 
     const response = await fetch(`${API_BASE_URL}/person/UpdatePerson`, {
       method: 'PUT',

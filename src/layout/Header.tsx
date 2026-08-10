@@ -38,7 +38,7 @@ export default function Header() {
     { label: 'Peliculas', path: '/films' },
     { label: 'Generos', path: '/genres' },
     { label: 'Paises', path: '/countries' },
-    { label: 'Directores', path: '/directores' },
+    { label: 'Directores', path: '/directors' },
   ]
 
   const handleNavigate = (path: string) => {

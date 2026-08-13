@@ -73,6 +73,7 @@ const initialFilters: SearchFilters = {
   country: null,
   director: null,
   genre: null,
+  genreMatchMode: 'and',
   maxDuration: null,
 }
 
@@ -638,7 +639,10 @@ const useMovieStore = create<MovieStore>((set, get) => ({
       const matchesId = filters.id === null || movie.id === filters.id
       const matchesCountry = filters.country === null || movie.countries.includes(filters.country)
       const matchesDirector = filters.director === null || movie.directors.includes(filters.director)
-      const matchesGenre = filters.genre === null || movie.genres.includes(filters.genre)
+      const matchesGenre = !filters.genre || filters.genre.length === 0 ||
+        (filters.genreMatchMode === 'and'
+          ? filters.genre.every(g => movie.genres.includes(g))
+          : filters.genre.some(g => movie.genres.includes(g)))
       const matchesDuration = !filters.maxDuration || movie.duration <= filters.maxDuration
 
       return matchesName && matchesId && matchesCountry && matchesDirector && matchesGenre && matchesDuration

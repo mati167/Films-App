@@ -79,6 +79,11 @@ export const getTheme = (mode: PaletteMode) => {
     components: {
       MuiCssBaseline: {
         styleOverrides: {
+          '@media (max-width: 768px)': {
+            '.MuiTouchRipple-root': {
+              display: 'none !important',
+            },
+          },
           body: {
             scrollbarColor: isDark ? '#2A2A35 #0A0A0F' : '#D1D5DB #F3F4F6',
             '&::-webkit-scrollbar': {

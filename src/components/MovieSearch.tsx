@@ -13,6 +13,8 @@ import FilterListIcon from '@mui/icons-material/FilterList'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import Autocomplete from '@mui/material/Autocomplete'
 import Collapse from '@mui/material/Collapse'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import useMovieStore from '@/store/useMovieStore'
 
 function minutesToHHMMSS(minutes: number): string {
@@ -42,7 +44,7 @@ export default function MovieSearch() {
     filters.id !== null ||
     filters.country !== null ||
     filters.director !== null ||
-    filters.genre !== null ||
+    (filters.genre !== null && filters.genre.length > 0) ||
     filters.maxDuration !== null
 
   // Build option lists: { id: number, label: string }
@@ -51,7 +53,7 @@ export default function MovieSearch() {
   const countryOptions = countries.map((name) => ({ id: countryIds[name], label: name }))
 
   const selectedDirector = directorOptions.find((o) => o.id === filters.director) ?? null
-  const selectedGenre = genreOptions.find((o) => o.id === filters.genre) ?? null
+  const selectedGenres = filters.genre ? genreOptions.filter((o) => filters.genre!.includes(o.id)) : []
   const selectedCountry = countryOptions.find((o) => o.id === filters.country) ?? null
 
   return (
@@ -152,14 +154,27 @@ export default function MovieSearch() {
             onChange={(_, v) => setFilter('director', v ? v.id : null)}
             renderInput={(params) => <TextField {...params} size="small" label="Director" placeholder="ej. Tarantino" />}
           />
-          <Autocomplete
-            options={genreOptions}
-            value={selectedGenre}
-            getOptionLabel={(o) => o.label}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            onChange={(_, v) => setFilter('genre', v ? v.id : null)}
-            renderInput={(params) => <TextField {...params} size="small" label="Género" placeholder="ej. Drama" />}
-          />
+          <Box>
+            <Autocomplete
+              multiple
+              options={genreOptions}
+              value={selectedGenres}
+              getOptionLabel={(o) => o.label}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              onChange={(_, v) => setFilter('genre', v.length > 0 ? v.map(x => x.id) : null)}
+              renderInput={(params) => <TextField {...params} size="small" label="Géneros" placeholder="ej. Drama, Thriller" />}
+            />
+            <ToggleButtonGroup
+              value={filters.genreMatchMode}
+              exclusive
+              size="small"
+              onChange={(_, mode) => mode && setFilter('genreMatchMode', mode)}
+              sx={{ mt: 1 }}
+            >
+              <ToggleButton value="and" sx={{ px: 2, fontSize: 12, fontWeight: 600 }}>Todos</ToggleButton>
+              <ToggleButton value="or" sx={{ px: 2, fontSize: 12, fontWeight: 600 }}>Cualquiera</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
               <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />

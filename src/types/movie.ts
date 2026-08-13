@@ -17,6 +17,7 @@ export interface SearchFilters {
   id: number | null
   country: number | null
   director: number | null
-  genre: number | null
+  genre: number[] | null
+  genreMatchMode: 'and' | 'or'
   maxDuration: string | null
 }

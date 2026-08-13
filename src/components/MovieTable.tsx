@@ -138,7 +138,7 @@ export default function MovieTable({ movies }: MovieTableProps) {
             <CardContent>
               <Stack spacing={1.5}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     {movie.name}
                   </Typography>
                   <Chip label={movie.year} size="small" sx={{ backgroundColor: 'rgba(229, 9, 20, 0.1)', color: 'primary.light' }} />
@@ -196,7 +196,7 @@ export default function MovieTable({ movies }: MovieTableProps) {
                         key={gId}
                         label={genreName}
                         to={`/genre/${gId}`}
-                        color="primary"
+                        color="default"
                         variant="outlined"
                       />
                     )
@@ -305,11 +305,11 @@ export default function MovieTable({ movies }: MovieTableProps) {
                       onClick={() => setSelectedMovie(movie)}
                       sx={{
                         fontWeight: 600,
-                        color: 'primary.main',
+                        color: 'text.primary',
                         cursor: 'pointer',
                         '&:hover': {
                           textDecoration: 'underline',
-                          color: 'primary.dark'
+                          color: 'text.secondary'
                         }
                       }}
                     >
@@ -381,7 +381,7 @@ export default function MovieTable({ movies }: MovieTableProps) {
                             key={gId}
                             label={genreName}
                             to={`/genre/${gId}`}
-                            color="primary"
+                            color="default"
                             variant="outlined"
                           />
                         )
